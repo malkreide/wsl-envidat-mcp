@@ -261,8 +261,6 @@ Data on EnviDat is published under various open licenses (Creative Commons, CC0)
 ## Author
 
 Hayal Oezkan · [malkreide](https://github.com/malkreide)  
-Head of Marketing & Communication, Schulamt der Stadt Zürich  
-Member, KI-Fachgruppe Stadtverwaltung Zürich
 
 ---
 
