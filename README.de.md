@@ -261,8 +261,6 @@ Daten auf EnviDat werden unter verschiedenen offenen Lizenzen publiziert (Creati
 ## Autorin
 
 Hayal Oezkan · [malkreide](https://github.com/malkreide)  
-Leiterin Marketing & Kommunikation, Schulamt der Stadt Zürich  
-Mitglied KI-Fachgruppe Stadtverwaltung Zürich
 
 ---
 
