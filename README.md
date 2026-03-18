@@ -1,12 +1,15 @@
+> 🇨🇭 **Part of the [Swiss Public Data MCP Portfolio](https://github.com/malkreide)**
+
 # wsl-envidat-mcp 🌲❄️⛰️
 
 ![Version](https://img.shields.io/badge/version-0.1.0-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Python](https://img.shields.io/badge/python-3.11+-blue)
-![Tests](https://img.shields.io/badge/tests-11%2F11-brightgreen)
-![No API Key](https://img.shields.io/badge/API%20key-not%20required-green)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-purple)](https://modelcontextprotocol.io/)
+[![Data Source](https://img.shields.io/badge/Data-envidat.ch-green)](https://www.envidat.ch/)
+[![No API Key](https://img.shields.io/badge/API%20key-not%20required-brightgreen)](https://www.envidat.ch/)
 
-> MCP server for environmental research and monitoring data from the Swiss Federal Research Institute WSL via EnviDat — no API key required
+> MCP server connecting AI models to Swiss environmental research data from WSL via EnviDat — forest, snow, avalanches, natural hazards and biodiversity, no API key required.
 
 [🇩🇪 Deutsche Version](README.de.md)
 
@@ -18,7 +21,9 @@ The **WSL** (Eidgenössische Forschungsanstalt für Wald, Schnee und Landschaft 
 
 This MCP server exposes the EnviDat CKAN API as 12 tools and 2 resources, enabling AI assistants to search, filter and retrieve WSL research data by keyword, domain, or geographic bounding box — all without an API key.
 
-Part of the [Swiss Open Data MCP Portfolio](https://github.com/malkreide).
+**Anchor demo query:** *"How was air quality and forest health around Schulhaus Leutschenbach in Zurich — and what does the WSL say about the current forest condition in the canton?"*
+
+---
 
 ## Features
 
@@ -30,11 +35,15 @@ Part of the [Swiss Open Data MCP Portfolio](https://github.com/malkreide).
 - **Dual transport**: stdio (Claude Desktop / local) + Streamable HTTP (cloud deployment)
 - **Model-agnostic**: works with Claude, GPT-4, and any MCP-compatible client
 
+---
+
 ## Prerequisites
 
 - Python 3.11+
 - `pip` or `uv` / `uvx`
 - Internet connection (live API calls to envidat.ch)
+
+---
 
 ## Installation
 
@@ -51,7 +60,9 @@ cd wsl-envidat-mcp
 pip install -e ".[dev]"
 ```
 
-## Usage / Quickstart
+---
+
+## Quickstart
 
 ### Claude Desktop
 
@@ -76,11 +87,7 @@ Restart Claude Desktop, then ask:
 - *"Are there WSL datasets on drought conditions in summer 2022?"*
 - *"What biodiversity data is available for alpine ecosystems?"*
 
-### Cloud Deployment (Streamable HTTP)
-
-```bash
-MCP_TRANSPORT=streamable_http PORT=8000 python -m wsl_envidat_mcp.server
-```
+---
 
 ## Configuration
 
@@ -91,7 +98,19 @@ No API key required. Optional environment variables:
 | `MCP_TRANSPORT` | `stdio` | Transport mode: `stdio` or `streamable_http` |
 | `PORT` | `8000` | Port for Streamable HTTP mode |
 
-## Tools
+### Cloud Deployment (Streamable HTTP)
+
+For use via **claude.ai in the browser** (e.g. on managed workstations without local software):
+
+```bash
+MCP_TRANSPORT=streamable_http PORT=8000 python -m wsl_envidat_mcp.server
+```
+
+> 💡 *"stdio for the developer laptop, SSE for the browser."*
+
+---
+
+## Available Tools
 
 | Tool | Description |
 |------|-------------|
@@ -108,6 +127,19 @@ No API key required. Optional environment variables:
 | `wsl_get_naturgefahren_data` | Natural hazard datasets (landslides, rockfall, floods) |
 | `wsl_catalog_stats` | Catalog overview and statistics |
 
+### Example Use Cases
+
+| Query | Tool |
+|-------|------|
+| *"Fatal avalanche accidents in Valais since 2000?"* | `wsl_get_avalanche_data` |
+| *"Forest health data for canton Zurich?"* | `wsl_get_forest_data` |
+| *"Landslide risk datasets near Brienz?"* | `wsl_get_naturgefahren_data` |
+| *"Most recent WSL publications on biodiversity?"* | `wsl_search_by_domain` |
+| *"Which datasets cover the area around Lake Constance?"* | `wsl_search_by_location` |
+| *"How many datasets does SLF publish?"* | `wsl_get_organization` |
+
+---
+
 ## Resources
 
 | URI | Description |
@@ -116,6 +148,34 @@ No API key required. Optional environment variables:
 | `envidat://domain/{domain}` | Domain overview with top datasets |
 
 Valid domain values: `wald`, `biodiversitaet`, `naturgefahren`, `schnee_eis`, `landschaft`
+
+---
+
+## Architecture
+
+```
+┌─────────────────┐     ┌───────────────────────────┐     ┌──────────────────────────┐
+│   Claude / AI   │────▶│    WSL EnviDat MCP        │────▶│       envidat.ch          │
+│   (MCP Host)    │◀────│    (MCP Server)           │◀────│                          │
+└─────────────────┘     │                           │     │  CKAN API  (REST/JSON)   │
+                        │  12 Tools · 2 Resources   │     │  Solr full-text search   │
+                        │  Stdio | Streamable HTTP  │     │  1,000+ research datasets│
+                        │                           │     │  815+ open datasets      │
+                        │  server.py                │     │  Time series since 1890  │
+                        │  api_client.py            │     └──────────────────────────┘
+                        └───────────────────────────┘
+```
+
+### Infrastructure Components
+
+| Component | Metaphor | Function |
+|-----------|----------|----------|
+| `api_client.py` | Librarian | Handles all HTTP requests to EnviDat CKAN API |
+| `server.py` | Reception desk | Registers all 12 tools and 2 resources with FastMCP |
+| Domain filters | Filing cabinet | Pre-configured keyword sets per research domain |
+| Bounding box search | Map overlay | Spatial filtering via lat/lon coordinates |
+
+---
 
 ## Project Structure
 
@@ -130,12 +190,14 @@ wsl-envidat-mcp/
 ├── .github/workflows/
 │   └── ci.yml              # GitHub Actions CI (Python 3.11–3.13)
 ├── pyproject.toml          # Project config (hatchling build backend)
-├── README.md               # This file (English)
-├── README.de.md            # German version
 ├── CHANGELOG.md
+├── CONTRIBUTING.md
 ├── LICENSE                 # MIT
-└── claude_desktop_config.json
+├── README.md               # This file (English)
+└── README.de.md            # German version
 ```
+
+---
 
 ## Combination with Other MCP Servers
 
@@ -149,9 +211,44 @@ This server is part of the Swiss Open Data MCP Portfolio and integrates well wit
 | + `fedlex-mcp` | Forest protection law + actual LFI forest condition |
 | + `global-education-mcp` | Compare environmental education data internationally |
 
+---
+
+## Known Limitations
+
+- **Solr search**: `OR` is treated as a stopword — use single, specific search terms per query
+- **Domain search**: Results depend on WSL's internal keyword tagging — not all datasets are tagged consistently
+- **Spatial search**: Bounding box filtering is approximate; verify coordinates with individual dataset metadata
+- **Live API**: All tools make live calls to envidat.ch — results depend on availability of the public API
+- **Languages**: Dataset metadata is primarily in English and German; some older entries may be in German only
+
+---
+
+## Testing
+
+```bash
+# Unit tests (no API key required, no network access)
+PYTHONPATH=src pytest tests/ -m "not live"
+
+# Integration tests (live API calls to envidat.ch)
+PYTHONPATH=src pytest tests/ -m "live"
+
+# Linting
+ruff check src/
+```
+
+---
+
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md)
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md)
+
+---
 
 ## License
 
@@ -159,8 +256,18 @@ MIT License — see [LICENSE](LICENSE)
 
 Data on EnviDat is published under various open licenses (Creative Commons, CC0) — see individual dataset metadata.
 
+---
+
 ## Author
 
 Hayal Oezkan · [malkreide](https://github.com/malkreide)  
 Head of Marketing & Communication, Schulamt der Stadt Zürich  
 Member, KI-Fachgruppe Stadtverwaltung Zürich
+
+---
+
+## Credits & Related Projects
+
+- **Data:** [EnviDat](https://www.envidat.ch/) – WSL Swiss Federal Research Institute for Forest, Snow and Landscape
+- **Protocol:** [Model Context Protocol](https://modelcontextprotocol.io/) – Anthropic / Linux Foundation
+- **Portfolio:** [Swiss Public Data MCP Portfolio](https://github.com/malkreide)
