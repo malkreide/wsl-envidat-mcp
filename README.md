@@ -8,6 +8,7 @@
 [![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-purple)](https://modelcontextprotocol.io/)
 [![Data Source](https://img.shields.io/badge/Data-envidat.ch-green)](https://www.envidat.ch/)
 [![No API Key](https://img.shields.io/badge/API%20key-not%20required-brightgreen)](https://www.envidat.ch/)
+![CI](https://github.com/malkreide/wsl-envidat-mcp/actions/workflows/ci.yml/badge.svg)
 
 > MCP server connecting AI models to Swiss environmental research data from WSL via EnviDat — forest, snow, avalanches, natural hazards and biodiversity, no API key required.
 
