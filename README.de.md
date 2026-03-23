@@ -10,6 +10,7 @@
 [![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-purple)](https://modelcontextprotocol.io/)
 [![Datenquelle](https://img.shields.io/badge/Daten-envidat.ch-green)](https://www.envidat.ch/)
 [![Kein API-Key](https://img.shields.io/badge/API--Key-nicht%20erforderlich-brightgreen)](https://www.envidat.ch/)
+![CI](https://github.com/malkreide/wsl-envidat-mcp/actions/workflows/ci.yml/badge.svg)
 
 > MCP-Server, der KI-Modelle mit Schweizer Umweltforschungsdaten der WSL via EnviDat verbindet — Wald, Schnee, Lawinen, Naturgefahren und Biodiversität, kein API-Schlüssel erforderlich.
 
