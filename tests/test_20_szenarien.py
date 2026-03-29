@@ -10,25 +10,13 @@ Hinweis: Erfordert aktive Internetverbindung.
 import asyncio
 import json
 import sys
-import types
 import traceback
 from pathlib import Path
 
-# ─── Import-Setup ─────────────────────────────────────────────────────────────
-# server.py importiert aus 'wsl_envidat_mcp.api_client' – da kein installiertes
-# Package vorliegt, erstellen wir ein virtuelles Modul, damit der Import klappt.
-project_dir = str(Path(__file__).parent)
-if project_dir not in sys.path:
-    sys.path.insert(0, project_dir)
+# src/ ins sys.path aufnehmen
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-import api_client  # noqa: E402
-
-_wsl_mod = types.ModuleType("wsl_envidat_mcp")
-_wsl_mod.api_client = api_client  # type: ignore[attr-defined]
-sys.modules["wsl_envidat_mcp"] = _wsl_mod
-sys.modules["wsl_envidat_mcp.api_client"] = api_client
-
-from api_client import (  # noqa: E402
+from wsl_envidat_mcp.api_client import (
     build_domain_query,
     ckan_organization_list,
     ckan_organization_show,
@@ -42,7 +30,7 @@ from api_client import (  # noqa: E402
     ENVIDAT_PORTAL,
 )
 
-from server import (  # noqa: E402
+from wsl_envidat_mcp.server import (
     _format_search_results,
     ResponseFormat,
     SearchDatasetsInput,

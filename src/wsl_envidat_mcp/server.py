@@ -29,7 +29,6 @@ from wsl_envidat_mcp.api_client import (
     ckan_organization_show,
     ckan_package_search,
     ckan_package_show,
-    ckan_status_show,
     ckan_tag_list,
     format_dataset_summary,
     handle_api_error,
@@ -60,18 +59,20 @@ mcp = FastMCP(
 
 # ─── Enums & Modelle ──────────────────────────────────────────────────────────
 
+
 class WSLDomain(str, Enum):
     """WSL-Forschungsdomänen."""
-    WALD           = "wald"
+
+    WALD = "wald"
     BIODIVERSITAET = "biodiversitaet"
-    NATURGEFAHREN  = "naturgefahren"
-    SCHNEE_EIS     = "schnee_eis"
-    LANDSCHAFT     = "landschaft"
+    NATURGEFAHREN = "naturgefahren"
+    SCHNEE_EIS = "schnee_eis"
+    LANDSCHAFT = "landschaft"
 
 
 class ResponseFormat(str, Enum):
     MARKDOWN = "markdown"
-    JSON     = "json"
+    JSON = "json"
 
 
 class SearchDatasetsInput(BaseModel):
@@ -144,7 +145,12 @@ class SearchByDomainInput(BaseModel):
             "'landschaft' (Landnutzung, Trockenheit, Naherholung, Fernerkundung)"
         ),
     )
-    limit: Optional[int] = Field(default=10, description="Maximale Anzahl Ergebnisse (1–30)", ge=1, le=30)
+    limit: Optional[int] = Field(
+        default=10,
+        description="Maximale Anzahl Ergebnisse (1-30)",
+        ge=1,
+        le=30,
+    )
     response_format: ResponseFormat = Field(default=ResponseFormat.MARKDOWN)
 
 
@@ -154,8 +160,7 @@ class GetOrganizationInput(BaseModel):
     name: str = Field(
         ...,
         description=(
-            "Organisations-Slug. "
-            "Beispiele: 'wsl', 'slf', 'forest-dynamics', 'mountain-ecosystems'"
+            "Organisations-Slug. Beispiele: 'wsl', 'slf', 'forest-dynamics', 'mountain-ecosystems'"
         ),
         min_length=1,
         max_length=100,
@@ -169,10 +174,30 @@ class GetOrganizationInput(BaseModel):
 class SearchByLocationInput(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
 
-    min_lon: float = Field(..., description="West-Longitude (Dezimalgrad), z.B. 5.95 (Schweiz West)", ge=-180, le=180)
-    min_lat: float = Field(..., description="Süd-Latitude (Dezimalgrad), z.B. 45.8 (Schweiz Süd)", ge=-90, le=90)
-    max_lon: float = Field(..., description="Ost-Longitude (Dezimalgrad), z.B. 10.5 (Schweiz Ost)", ge=-180, le=180)
-    max_lat: float = Field(..., description="Nord-Latitude (Dezimalgrad), z.B. 47.8 (Schweiz Nord)", ge=-90, le=90)
+    min_lon: float = Field(
+        ...,
+        description="West-Longitude (Dezimalgrad), z.B. 5.95",
+        ge=-180,
+        le=180,
+    )
+    min_lat: float = Field(
+        ...,
+        description="Sued-Latitude (Dezimalgrad), z.B. 45.8",
+        ge=-90,
+        le=90,
+    )
+    max_lon: float = Field(
+        ...,
+        description="Ost-Longitude (Dezimalgrad), z.B. 10.5",
+        ge=-180,
+        le=180,
+    )
+    max_lat: float = Field(
+        ...,
+        description="Nord-Latitude (Dezimalgrad), z.B. 47.8",
+        ge=-90,
+        le=90,
+    )
     query: Optional[str] = Field(
         default=None,
         description="Optionaler zusätzlicher Suchbegriff zur Einschränkung",
@@ -214,6 +239,7 @@ class GetRecentDatasetsInput(BaseModel):
 
 class SimpleQueryInput(BaseModel):
     """Für spezialisierte thematische Suchen (Wald, Lawinen, Schnee, Dürre)."""
+
     model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
 
     limit: Optional[int] = Field(default=8, ge=1, le=20)
@@ -222,15 +248,16 @@ class SimpleQueryInput(BaseModel):
 
 # ─── Hilfsfunktion: Suchergebnisse formatieren ───────────────────────────────
 
+
 def _format_search_results(
     result: dict[str, Any],
     response_format: ResponseFormat,
     title: str = "EnviDat Suchergebnisse",
 ) -> str:
     """Formatiert Suchergebnisse einheitlich für alle Such-Tools."""
-    packages  = result.get("results", [])
-    count     = result.get("count", 0)
-    shown     = len(packages)
+    packages = result.get("results", [])
+    count = result.get("count", 0)
+    shown = len(packages)
 
     if response_format == ResponseFormat.JSON:
         return json.dumps(
@@ -239,14 +266,14 @@ def _format_search_results(
                 "shown": shown,
                 "datasets": [
                     {
-                        "name":      p.get("name"),
-                        "title":     p.get("title"),
-                        "notes":     (p.get("notes") or "")[:300],
-                        "modified":  p.get("metadata_modified", "")[:10],
-                        "org":       (p.get("organization") or {}).get("name"),
-                        "tags":      [t.get("name") for t in p.get("tags", [])],
+                        "name": p.get("name"),
+                        "title": p.get("title"),
+                        "notes": (p.get("notes") or "")[:300],
+                        "modified": p.get("metadata_modified", "")[:10],
+                        "org": (p.get("organization") or {}).get("name"),
+                        "tags": [t.get("name") for t in p.get("tags", [])],
                         "resources": len(p.get("resources", [])),
-                        "url":       f"{ENVIDAT_PORTAL}/dataset/{p.get('name')}",
+                        "url": f"{ENVIDAT_PORTAL}/dataset/{p.get('name')}",
                     }
                     for p in packages
                 ],
@@ -270,6 +297,7 @@ def _format_search_results(
 
 
 # ─── Tool 1: Datensätze suchen ────────────────────────────────────────────────
+
 
 @mcp.tool(
     name="wsl_search_datasets",
@@ -318,6 +346,7 @@ async def wsl_search_datasets(params: SearchDatasetsInput) -> str:
 
 # ─── Tool 2: Datensatz-Details ────────────────────────────────────────────────
 
+
 @mcp.tool(
     name="wsl_get_dataset",
     annotations={
@@ -349,22 +378,22 @@ async def wsl_get_dataset(params: GetDatasetInput) -> str:
             return json.dumps(pkg, indent=2, ensure_ascii=False)
 
         # Erweiterte Markdown-Ausgabe
-        title    = pkg.get("title") or pkg.get("name", "–")
-        name     = pkg.get("name", "–")
-        notes    = pkg.get("notes") or "Keine Beschreibung vorhanden."
-        org      = (pkg.get("organization") or {}).get("title", "–")
+        title = pkg.get("title") or pkg.get("name", "–")
+        name = pkg.get("name", "–")
+        notes = pkg.get("notes") or "Keine Beschreibung vorhanden."
+        org = (pkg.get("organization") or {}).get("title", "–")
         modified = pkg.get("metadata_modified", "")[:10]
-        created  = pkg.get("metadata_created", "")[:10]
-        tags     = [t.get("name", "") for t in pkg.get("tags", [])]
+        created = pkg.get("metadata_created", "")[:10]
+        tags = [t.get("name", "") for t in pkg.get("tags", [])]
         license_title = pkg.get("license_title", "–")
-        doi      = pkg.get("doi") or pkg.get("extras_doi", "–")
-        url      = f"{ENVIDAT_PORTAL}/dataset/{name}"
+        doi = pkg.get("doi") or pkg.get("extras_doi", "–")
+        url = f"{ENVIDAT_PORTAL}/dataset/{name}"
 
         # Autoren aus extras
-        extras   = {e.get("key"): e.get("value") for e in pkg.get("extras", [])}
-        authors  = extras.get("authors", extras.get("author", "–"))
+        extras = {e.get("key"): e.get("value") for e in pkg.get("extras", [])}
+        authors = extras.get("authors", extras.get("author", "–"))
         pub_year = extras.get("publication_year", "")
-        spatial  = extras.get("spatial", "")
+        spatial = extras.get("spatial", "")
 
         lines = [
             f"# {title}",
@@ -387,7 +416,11 @@ async def wsl_get_dataset(params: GetDatasetInput) -> str:
         if spatial:
             try:
                 sp = json.loads(spatial)
-                lines.append(f"\n**Räumliche Ausdehnung:** {json.dumps(sp.get('bbox') or sp, ensure_ascii=False)}")
+                bbox_str = json.dumps(
+                    sp.get("bbox") or sp,
+                    ensure_ascii=False,
+                )
+                lines.append(f"\n**Räumliche Ausdehnung:** {bbox_str}")
             except Exception:
                 lines.append(f"\n**Räumliche Ausdehnung:** {spatial[:200]}")
 
@@ -395,11 +428,11 @@ async def wsl_get_dataset(params: GetDatasetInput) -> str:
         if resources:
             lines.append(f"\n## Ressourcen ({len(resources)} Dateien)\n")
             for r in resources:
-                r_name   = r.get("name") or r.get("id", "Unbekannt")
+                r_name = r.get("name") or r.get("id", "Unbekannt")
                 r_format = (r.get("format") or "–").upper()
-                r_size   = r.get("size")
-                r_url    = r.get("url", "–")
-                r_desc   = r.get("description", "")
+                r_size = r.get("size")
+                r_url = r.get("url", "–")
+                r_desc = r.get("description", "")
                 size_str = f" · {int(r_size) // 1024} KB" if r_size else ""
                 desc_str = f" – {r_desc[:80]}" if r_desc else ""
                 lines.append(f"- **`{r_format}`** [{r_name}]({r_url}){size_str}{desc_str}")
@@ -412,6 +445,7 @@ async def wsl_get_dataset(params: GetDatasetInput) -> str:
 
 
 # ─── Tool 3: Suche nach Domäne ────────────────────────────────────────────────
+
 
 @mcp.tool(
     name="wsl_search_by_domain",
@@ -449,11 +483,11 @@ async def wsl_search_by_domain(params: SearchByDomainInput) -> str:
             rows=params.limit,
         )
         domain_label = {
-            "wald":           "🌲 Wald",
+            "wald": "🌲 Wald",
             "biodiversitaet": "🦋 Biodiversität",
-            "naturgefahren":  "⛰️ Naturgefahren",
-            "schnee_eis":     "❄️ Schnee & Eis",
-            "landschaft":     "🏞️ Landschaft",
+            "naturgefahren": "⛰️ Naturgefahren",
+            "schnee_eis": "❄️ Schnee & Eis",
+            "landschaft": "🏞️ Landschaft",
         }.get(params.domain.value, params.domain.value)
 
         return _format_search_results(
@@ -466,6 +500,7 @@ async def wsl_search_by_domain(params: SearchByDomainInput) -> str:
 
 
 # ─── Tool 4: Räumliche Suche ──────────────────────────────────────────────────
+
 
 @mcp.tool(
     name="wsl_search_by_location",
@@ -502,7 +537,10 @@ async def wsl_search_by_location(params: SearchByLocationInput) -> str:
             rows=params.limit,
             extras=extras,
         )
-        location_str = f"BBox [{params.min_lon:.2f},{params.min_lat:.2f} → {params.max_lon:.2f},{params.max_lat:.2f}]"
+        location_str = (
+            f"BBox [{params.min_lon:.2f},{params.min_lat:.2f}"
+            f" -> {params.max_lon:.2f},{params.max_lat:.2f}]"
+        )
         return _format_search_results(
             result,
             ResponseFormat.MARKDOWN,
@@ -513,6 +551,7 @@ async def wsl_search_by_location(params: SearchByLocationInput) -> str:
 
 
 # ─── Tool 5: Organisationen auflisten ─────────────────────────────────────────
+
 
 @mcp.tool(
     name="wsl_list_organizations",
@@ -545,15 +584,15 @@ async def wsl_list_organizations() -> str:
             f"**{len(orgs)} Organisationen** mit Datensätzen:\n",
         ]
         for org in sorted(orgs, key=lambda x: x.get("package_count", 0), reverse=True):
-            name     = org.get("name", "–")
-            title    = org.get("title") or name
-            count    = org.get("package_count", 0)
-            desc     = (org.get("description") or "")[:120]
+            name = org.get("name", "–")
+            title = org.get("title") or name
+            count = org.get("package_count", 0)
+            desc = (org.get("description") or "")[:120]
             lines.append(f"- **{title}** (`{name}`) – {count} Datensätze")
             if desc:
                 lines.append(f"  _{desc}_")
 
-        lines.append(f"\n*Tipp: `wsl_get_organization` für Details zu einer Einheit*")
+        lines.append("\n*Tipp: `wsl_get_organization` für Details zu einer Einheit*")
         return "\n".join(lines)
 
     except Exception as e:
@@ -561,6 +600,7 @@ async def wsl_list_organizations() -> str:
 
 
 # ─── Tool 6: Organisation-Details ─────────────────────────────────────────────
+
 
 @mcp.tool(
     name="wsl_get_organization",
@@ -589,11 +629,11 @@ async def wsl_get_organization(params: GetOrganizationInput) -> str:
     try:
         org = await ckan_organization_show(params.name, params.include_datasets)
 
-        title   = org.get("title") or org.get("name", "–")
-        name    = org.get("name", "–")
-        desc    = org.get("description") or "Keine Beschreibung."
-        count   = org.get("package_count", 0)
-        pkgs    = org.get("packages", [])
+        title = org.get("title") or org.get("name", "–")
+        name = org.get("name", "–")
+        desc = org.get("description") or "Keine Beschreibung."
+        count = org.get("package_count", 0)
+        pkgs = org.get("packages", [])
 
         lines = [
             f"## {title}",
@@ -605,11 +645,10 @@ async def wsl_get_organization(params: GetOrganizationInput) -> str:
             lines.append(f"### Datensätze ({min(len(pkgs), 10)} von {count})\n")
             for p in pkgs[:10]:
                 p_title = p.get("title") or p.get("name", "–")
-                p_name  = p.get("name", "–")
-                p_mod   = p.get("metadata_modified", "")[:10]
+                p_name = p.get("name", "–")
+                p_mod = p.get("metadata_modified", "")[:10]
                 lines.append(
-                    f"- [{p_title}]({ENVIDAT_PORTAL}/dataset/{p_name}) "
-                    f"_(zuletzt: {p_mod})_"
+                    f"- [{p_title}]({ENVIDAT_PORTAL}/dataset/{p_name}) _(zuletzt: {p_mod})_"
                 )
             if count > 10:
                 lines.append(f"\n*+{count - 10} weitere Datensätze auf EnviDat*")
@@ -621,6 +660,7 @@ async def wsl_get_organization(params: GetOrganizationInput) -> str:
 
 
 # ─── Tool 7: Tags auflisten ───────────────────────────────────────────────────
+
 
 @mcp.tool(
     name="wsl_list_tags",
@@ -651,16 +691,15 @@ async def wsl_list_tags(params: ListTagsInput) -> str:
         filtered = tags[: params.limit]
 
         prefix = f"«{params.query}»" if params.query else "alle"
-        return (
-            f"## EnviDat Tags ({prefix})\n\n"
-            f"{len(filtered)} Tags gefunden:\n\n"
-            + ", ".join(f"`{t}`" for t in filtered)
+        return f"## EnviDat Tags ({prefix})\n\n{len(filtered)} Tags gefunden:\n\n" + ", ".join(
+            f"`{t}`" for t in filtered
         )
     except Exception as e:
         return handle_api_error(e, "wsl_list_tags")
 
 
 # ─── Tool 8: Aktuelle Datensätze ──────────────────────────────────────────────
+
 
 @mcp.tool(
     name="wsl_get_recent_datasets",
@@ -701,6 +740,7 @@ async def wsl_get_recent_datasets(params: GetRecentDatasetsInput) -> str:
 
 # ─── Tool 9: Lawinendaten ─────────────────────────────────────────────────────
 
+
 @mcp.tool(
     name="wsl_get_avalanche_data",
     annotations={
@@ -712,7 +752,7 @@ async def wsl_get_recent_datasets(params: GetRecentDatasetsInput) -> str:
     },
 )
 async def wsl_get_avalanche_data(params: SimpleQueryInput) -> str:
-    """Gibt Datensätze zu Lawinen und Schnee vom WSL-Institut für Schnee- und Lawinenforschung SLF zurück.
+    """Lawinen- und Schneedaten vom WSL-Institut fuer Schnee- und Lawinenforschung (SLF).
 
     Enthält u.a.:
     - Tödliche Lawinenunfälle in der Schweiz seit 1936/37
@@ -750,6 +790,7 @@ async def wsl_get_avalanche_data(params: SimpleQueryInput) -> str:
 
 # ─── Tool 10: Walddaten ───────────────────────────────────────────────────────
 
+
 @mcp.tool(
     name="wsl_get_forest_data",
     annotations={
@@ -779,7 +820,10 @@ async def wsl_get_forest_data(params: SimpleQueryInput) -> str:
     """
     try:
         result = await ckan_package_search(
-            query='"forest" OR "wald" OR "LFI" OR "sanasilva" OR "trees" OR "bark beetle" OR "defoliation"',
+            query=(
+                '"forest" OR "wald" OR "LFI" OR "sanasilva"'
+                ' OR "trees" OR "bark beetle" OR "defoliation"'
+            ),
             rows=params.limit,
             sort="score desc",
         )
@@ -793,6 +837,7 @@ async def wsl_get_forest_data(params: SimpleQueryInput) -> str:
 
 
 # ─── Tool 11: Naturgefahren ───────────────────────────────────────────────────
+
 
 @mcp.tool(
     name="wsl_get_naturgefahren_data",
@@ -844,6 +889,7 @@ async def wsl_get_naturgefahren_data(params: SimpleQueryInput) -> str:
 
 # ─── Tool 12: Katalog-Statistiken ─────────────────────────────────────────────
 
+
 @mcp.tool(
     name="wsl_catalog_stats",
     annotations={
@@ -880,24 +926,24 @@ async def wsl_catalog_stats() -> str:
             domain_counts[domain_key] = r.get("count", 0)
 
         domain_labels = {
-            "wald":           "🌲 Wald",
+            "wald": "🌲 Wald",
             "biodiversitaet": "🦋 Biodiversität",
-            "naturgefahren":  "⛰️ Naturgefahren",
-            "schnee_eis":     "❄️ Schnee & Eis",
-            "landschaft":     "🏞️ Landschaft",
+            "naturgefahren": "⛰️ Naturgefahren",
+            "schnee_eis": "❄️ Schnee & Eis",
+            "landschaft": "🏞️ Landschaft",
         }
 
         lines = [
             "# EnviDat – Katalog-Übersicht",
             f"\n**Portal:** {ENVIDAT_PORTAL}",
-            f"**Betreiber:** WSL – Eidg. Forschungsanstalt für Wald, Schnee und Landschaft",
-            f"**API:** CKAN (kein API-Schlüssel erforderlich)",
-            f"\n## Zahlen",
+            "**Betreiber:** WSL – Eidg. Forschungsanstalt für Wald, Schnee und Landschaft",
+            "**API:** CKAN (kein API-Schlüssel erforderlich)",
+            "\n## Zahlen",
             f"- **Datensätze gesamt:** {total:,}",
             f"- **Forschungseinheiten:** {num_orgs}",
-            f"- **Monitoring-Stationen:** 6'000+",
-            f"- **Längste Zeitreihen:** bis 130 Jahre",
-            f"\n## Datensätze nach Domäne (Näherungswerte)",
+            "- **Monitoring-Stationen:** 6'000+",
+            "- **Längste Zeitreihen:** bis 130 Jahre",
+            "\n## Datensätze nach Domäne (Näherungswerte)",
         ]
         for key, label in domain_labels.items():
             count = domain_counts.get(key, 0)
@@ -930,6 +976,7 @@ async def wsl_catalog_stats() -> str:
 
 # ─── Resources ────────────────────────────────────────────────────────────────
 
+
 @mcp.resource("envidat://organization/{name}")
 async def get_organization_resource(name: str) -> str:
     """WSL-Forschungseinheit als MCP-Ressource.
@@ -960,10 +1007,10 @@ async def get_domain_resource(domain: str) -> str:
                 "total": result.get("count", 0),
                 "datasets": [
                     {
-                        "name":  p.get("name"),
+                        "name": p.get("name"),
                         "title": p.get("title"),
-                        "org":   (p.get("organization") or {}).get("name"),
-                        "url":   f"{ENVIDAT_PORTAL}/dataset/{p.get('name')}",
+                        "org": (p.get("organization") or {}).get("name"),
+                        "url": f"{ENVIDAT_PORTAL}/dataset/{p.get('name')}",
                     }
                     for p in result.get("results", [])
                 ],
@@ -977,9 +1024,11 @@ async def get_domain_resource(domain: str) -> str:
 
 # ─── Entry point ──────────────────────────────────────────────────────────────
 
+
 def main() -> None:
     """Startet den WSL/EnviDat MCP Server."""
     import os
+
     transport = os.environ.get("MCP_TRANSPORT", "stdio")
     port = int(os.environ.get("PORT", "8000"))
 

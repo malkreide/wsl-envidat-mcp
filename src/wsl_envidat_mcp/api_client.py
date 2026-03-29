@@ -1,4 +1,6 @@
-"""HTTP-Client für die EnviDat CKAN API der WSL (Eidg. Forschungsanstalt für Wald, Schnee und Landschaft).
+"""HTTP-Client für die EnviDat CKAN API.
+
+WSL – Eidg. Forschungsanstalt für Wald, Schnee und Landschaft.
 
 API-Basis: https://www.envidat.ch/api/action/
 Dokumentation: https://docs.ckan.org/en/latest/api/index.html
@@ -6,7 +8,6 @@ Dokumentation: https://docs.ckan.org/en/latest/api/index.html
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any
 
@@ -17,29 +18,81 @@ logger = logging.getLogger(__name__)
 # ─── Konstanten ───────────────────────────────────────────────────────────────
 
 ENVIDAT_API_BASE = "https://www.envidat.ch/api/action"
-ENVIDAT_PORTAL   = "https://www.envidat.ch"
-REQUEST_TIMEOUT  = 30.0  # Sekunden
+ENVIDAT_PORTAL = "https://www.envidat.ch"
+REQUEST_TIMEOUT = 30.0  # Sekunden
 
 # WSL-Forschungsdomänen → kuratierte Suchbegriffe
 DOMAIN_KEYWORDS: dict[str, list[str]] = {
-    "wald":          ["forest", "wald", "trees", "sanasilva", "LFI",
-                      "bark beetle", "defoliation", "beech", "spruce",
-                      "forest inventory", "waldbrand"],
-    "biodiversitaet":["biodiversity", "species", "habitat", "vegetation",
-                      "insects", "fungi", "lichens", "birds", "mammals",
-                      "invertebrates", "plant diversity", "ecosystem"],
-    "naturgefahren": ["avalanche", "debris flow", "landslide", "rockfall",
-                      "flood", "erosion", "sediment", "hazard",
-                      "murgang", "steinschlag", "rutschung"],
-    "schnee_eis":    ["snow", "avalanche", "glacier", "permafrost",
-                      "ice", "snowpack", "snowmelt", "firn", "SLF",
-                      "snow depth", "snowcover"],
-    "landschaft":    ["landscape", "land use", "land cover", "drought",
-                      "remote sensing", "urban", "recreation", "settlement",
-                      "trockenheit", "landnutzung", "fernerkundung"],
+    "wald": [
+        "forest",
+        "wald",
+        "trees",
+        "sanasilva",
+        "LFI",
+        "bark beetle",
+        "defoliation",
+        "beech",
+        "spruce",
+        "forest inventory",
+        "waldbrand",
+    ],
+    "biodiversitaet": [
+        "biodiversity",
+        "species",
+        "habitat",
+        "vegetation",
+        "insects",
+        "fungi",
+        "lichens",
+        "birds",
+        "mammals",
+        "invertebrates",
+        "plant diversity",
+        "ecosystem",
+    ],
+    "naturgefahren": [
+        "avalanche",
+        "debris flow",
+        "landslide",
+        "rockfall",
+        "flood",
+        "erosion",
+        "sediment",
+        "hazard",
+        "murgang",
+        "steinschlag",
+        "rutschung",
+    ],
+    "schnee_eis": [
+        "snow",
+        "avalanche",
+        "glacier",
+        "permafrost",
+        "ice",
+        "snowpack",
+        "snowmelt",
+        "firn",
+        "SLF",
+        "snow depth",
+        "snowcover",
+    ],
+    "landschaft": [
+        "landscape",
+        "land use",
+        "land cover",
+        "drought",
+        "remote sensing",
+        "urban",
+        "recreation",
+        "settlement",
+        "trockenheit",
+        "landnutzung",
+        "fernerkundung",
+    ],
 }
 
 # ─── Hilfsfunktionen ──────────────────────────────────────────────────────────
+
 
 def _make_client() -> httpx.AsyncClient:
     """Erstellt einen konfigurierten HTTP-Client."""
@@ -84,6 +137,7 @@ def handle_api_error(e: Exception, context: str = "") -> str:
 
 
 # ─── API-Funktionen ───────────────────────────────────────────────────────────
+
 
 async def ckan_package_search(
     query: str = "",
@@ -167,14 +221,15 @@ async def ckan_status_show() -> dict[str, Any]:
 
 def format_dataset_summary(pkg: dict[str, Any], include_resources: bool = True) -> str:
     """Formatiert einen Datensatz als lesbare Markdown-Zusammenfassung."""
-    title     = pkg.get("title") or pkg.get("name", "–")
-    name      = pkg.get("name", "–")
-    notes     = (pkg.get("notes") or "Keine Beschreibung vorhanden.")[:400]
-    modified  = pkg.get("metadata_modified", "")[:10]
-    org       = (pkg.get("organization") or {}).get("title") or (pkg.get("organization") or {}).get("name", "–")
-    tags      = [t.get("name", "") for t in pkg.get("tags", [])]
-    num_res   = len(pkg.get("resources", []))
-    url       = f"{ENVIDAT_PORTAL}/dataset/{name}"
+    title = pkg.get("title") or pkg.get("name", "–")
+    name = pkg.get("name", "–")
+    notes = (pkg.get("notes") or "Keine Beschreibung vorhanden.")[:400]
+    modified = pkg.get("metadata_modified", "")[:10]
+    org_dict = pkg.get("organization") or {}
+    org = org_dict.get("title") or org_dict.get("name", "–")
+    tags = [t.get("name", "") for t in pkg.get("tags", [])]
+    num_res = len(pkg.get("resources", []))
+    url = f"{ENVIDAT_PORTAL}/dataset/{name}"
 
     lines = [
         f"### {title}",
@@ -190,9 +245,9 @@ def format_dataset_summary(pkg: dict[str, Any], include_resources: bool = True) 
     if include_resources and pkg.get("resources"):
         lines.append("\n**Verfügbare Ressourcen:**")
         for r in pkg["resources"][:5]:
-            r_name   = r.get("name") or r.get("id", "Unbekannt")
+            r_name = r.get("name") or r.get("id", "Unbekannt")
             r_format = r.get("format", "–").upper()
-            r_url    = r.get("url", "–")
+            r_url = r.get("url", "–")
             lines.append(f"  - `{r_format}` [{r_name}]({r_url})")
         if num_res > 5:
             lines.append(f"  - *(+{num_res - 5} weitere Ressourcen auf EnviDat)*")
@@ -208,10 +263,10 @@ def build_domain_query(domain: str) -> str:
     konsistent bessere Ergebnisse. Die Begriffe sind nach Trefferhäufigkeit gewählt.
     """
     _PRIMARY: dict[str, str] = {
-        "wald":           "forest",
+        "wald": "forest",
         "biodiversitaet": "species",
-        "naturgefahren":  "avalanche",
-        "schnee_eis":     "snow",
-        "landschaft":     "landscape",
+        "naturgefahren": "avalanche",
+        "schnee_eis": "snow",
+        "landschaft": "landscape",
     }
     return _PRIMARY.get(domain.lower(), domain)
