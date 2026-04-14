@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="330" viewBox="0 0 640 330">
+  <rect width="640" height="330" fill="#0d1117"/>
+
+  <!-- Gap lines -->
+  <rect x="0" y="100" width="640" height="1" fill="#30363d"/>
+  <rect x="0" y="210" width="640" height="1" fill="#30363d"/>
+
+  <!-- Panel 1: User (y=0, h=100) -->
+  <rect x="0" y="0" width="3" height="100" fill="#58a6ff"/>
+  <rect x="3" y="0" width="637" height="100" fill="#161b22"/>
+  <text x="16" y="22" font-family="monospace" font-size="13" fill="#58a6ff" font-weight="bold">&#x1F4AC; You</text>
+  <text x="16" y="48" font-family="monospace" font-size="13" fill="#c9d1d9">What WSL datasets exist on fatal avalanche accidents</text>
+  <text x="16" y="66" font-family="monospace" font-size="13" fill="#c9d1d9">in Switzerland, and how is the forest health?</text>
+
+  <!-- Panel 2: Tool Calls (y=101, h=109) -->
+  <rect x="0" y="101" width="3" height="109" fill="#e3b341"/>
+  <rect x="3" y="101" width="637" height="109" fill="#161b22"/>
+  <text x="16" y="123" font-family="monospace" font-size="13" fill="#e3b341" font-weight="bold">&#x1F527; Tool Calls</text>
+  <text x="16" y="149" font-family="monospace" font-size="13" fill="#e3b341">wsl_get_avalanche_data(limit=5)</text>
+  <text x="16" y="169" font-family="monospace" font-size="13" fill="#e3b341">wsl_get_forest_data(limit=5)</text>
+  <text x="16" y="189" font-family="monospace" font-size="13" fill="#e3b341">wsl_catalog_stats()</text>
+
+  <!-- Panel 3: Claude response (y=211, h=119) -->
+  <rect x="0" y="211" width="3" height="119" fill="#3fb950"/>
+  <rect x="3" y="211" width="637" height="119" fill="#161b22"/>
+  <text x="16" y="233" font-family="monospace" font-size="13" fill="#3fb950" font-weight="bold">&#x1F916; Claude</text>
+  <text x="16" y="259" font-family="monospace" font-size="13" fill="#c9d1d9">SLF documents 2,200+ fatal avalanche accidents since</text>
+  <text x="16" y="277" font-family="monospace" font-size="13" fill="#c9d1d9">1936. Sanasilva shows 24% crown defoliation (2023).</text>
+  <text x="16" y="297" font-family="monospace" font-size="13" fill="#c9d1d9">EnviDat: 822 datasets across 25 research units.</text>
+</svg>

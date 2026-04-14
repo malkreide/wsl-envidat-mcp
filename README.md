@@ -24,6 +24,10 @@ This MCP server exposes the EnviDat CKAN API as 12 tools and 2 resources, enabli
 
 **Anchor demo query:** *"How was air quality and forest health around Schulhaus Leutschenbach in Zurich — and what does the WSL say about the current forest condition in the canton?"*
 
+### Demo
+
+![Demo: Claude using wsl_get_avalanche_data, wsl_get_forest_data and wsl_catalog_stats](docs/assets/demo.svg)
+
 ---
 
 ## Features
@@ -221,6 +225,17 @@ This server is part of the Swiss Open Data MCP Portfolio and integrates well wit
 - **Spatial search**: Bounding box filtering is approximate; verify coordinates with individual dataset metadata
 - **Live API**: All tools make live calls to envidat.ch — results depend on availability of the public API
 - **Languages**: Dataset metadata is primarily in English and German; some older entries may be in German only
+
+---
+
+## Safety & Limits
+
+- **Read-only:** All tools perform HTTP GET requests only — no data is written, modified, or deleted on EnviDat.
+- **No personal data:** The API returns research metadata, dataset descriptions, and download URLs. No personally identifiable information (PII) is processed or stored by this server.
+- **Rate limits:** The EnviDat CKAN API is public without documented rate limits. Use `limit` and `rows` parameters conservatively. The server enforces a 30-second timeout per request.
+- **Data freshness:** All tools make live API calls — results reflect the current state of the EnviDat catalog at query time. No caching is performed by this server.
+- **Terms of service:** Data is subject to the [EnviDat Terms of Use](https://www.envidat.ch/about). Individual datasets are published under various open licenses (Creative Commons, CC0) — see dataset metadata.
+- **No guarantees:** This is a community project, not affiliated with WSL or EnviDat. Availability depends on the upstream EnviDat API.
 
 ---
 

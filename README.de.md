@@ -24,6 +24,10 @@ Dieser MCP-Server stellt die EnviDat CKAN API als 12 Tools und 2 Resources berei
 
 **Anker-Demo-Abfrage:** *«Wie war die Luftqualität und der Waldzustand rund um das Schulhaus Leutschenbach in Zürich — und was sagt die WSL zum aktuellen Waldzustand im Kanton?»*
 
+### Demo
+
+![Demo: Claude nutzt wsl_get_avalanche_data, wsl_get_forest_data und wsl_catalog_stats](docs/assets/demo.svg)
+
 ---
 
 ## Funktionen
@@ -221,6 +225,17 @@ Dieser Server ist Teil des Swiss Open Data MCP-Portfolios und lässt sich kombin
 - **Räumliche Suche**: Bounding-Box-Filterung ist näherungsweise; Koordinaten anhand der Datensatz-Metadaten verifizieren
 - **Live-API**: Alle Tools rufen envidat.ch live ab — Ergebnisse hängen von der Verfügbarkeit der öffentlichen API ab
 - **Sprachen**: Datensatz-Metadaten primär auf Englisch und Deutsch; ältere Einträge teilweise nur auf Deutsch
+
+---
+
+## Sicherheit & Grenzen
+
+- **Nur lesend:** Alle Tools führen ausschliesslich HTTP-GET-Anfragen aus — es werden keine Daten auf EnviDat geschrieben, geändert oder gelöscht.
+- **Keine Personendaten:** Die API liefert Forschungs-Metadaten, Datensatz-Beschreibungen und Download-URLs. Es werden keine personenbezogenen Daten (PII) verarbeitet oder gespeichert.
+- **Rate Limits:** Die EnviDat CKAN API ist öffentlich ohne dokumentierte Rate Limits. `limit`- und `rows`-Parameter sparsam verwenden. Der Server erzwingt ein 30-Sekunden-Timeout pro Anfrage.
+- **Datenaktualität:** Alle Tools rufen die API live ab — Ergebnisse spiegeln den aktuellen Stand des EnviDat-Katalogs zum Abfragezeitpunkt. Es wird kein Caching durchgeführt.
+- **Nutzungsbedingungen:** Daten unterliegen den [EnviDat-Nutzungsbedingungen](https://www.envidat.ch/about). Einzelne Datensätze werden unter verschiedenen offenen Lizenzen publiziert (Creative Commons, CC0) — siehe Datensatz-Metadaten.
+- **Keine Garantien:** Dies ist ein Community-Projekt, nicht affiliiert mit WSL oder EnviDat. Die Verfügbarkeit hängt von der vorgelagerten EnviDat-API ab.
 
 ---
 
