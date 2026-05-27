@@ -1,0 +1,416 @@
+{
+  "audit_meta": {
+    "server_name": "wsl-envidat-mcp",
+    "run_id": "2026-05-27T120439-Z-wsl-envidat-mcp",
+    "skill_version": "1.0.0",
+    "policy": "fail-or-partial"
+  },
+  "results": {
+    "ARCH-001": {
+      "status": "pass",
+      "category": "ARCH",
+      "severity": "medium",
+      "evidence": [
+        "Alle 12 Tools haben konsistenten snake_case-Prefix wsl_* (server.py: wsl_search_datasets, wsl_get_dataset, wsl_search_by_domain, wsl_search_by_location, wsl_list_organizations, wsl_get_organization, wsl_list_tags, wsl_get_recent_datasets, wsl_get_avalanche_data, wsl_get_forest_data, wsl_get_naturgefahren_data, wsl_catalog_stats)",
+        "Keine Spaces, Punkte oder Sonderzeichen in Tool-Namen",
+        "Einheitliche Convention im ganzen Repo"
+      ],
+      "gaps": []
+    },
+    "ARCH-002": {
+      "status": "partial",
+      "category": "ARCH",
+      "severity": "medium",
+      "evidence": [
+        "Alle Tool-Decorators haben annotations.title als sprechenden deutschen Titel",
+        "Tool-Docstrings sind mehrsprachig (DE), liefern Use-Case-Kontext und Args-Beschreibung (server.py:313, 361, 461, 516)",
+        "Pydantic-Field-Descriptions detailliert mit Beispielen (server.py:81-90, 119-126, 139-146)"
+      ],
+      "gaps": [
+        "Keine strukturierten <use_case>/<important_notes>/<example>-Tags in den Tool-Descriptions — LLM kann Kontext-Hints nicht systematisch parsen"
+      ]
+    },
+    "ARCH-003": {
+      "status": "partial",
+      "category": "ARCH",
+      "severity": "medium",
+      "evidence": [
+        "Leere Resultate triggern Klartext-Hinweis 'Keine Datensätze gefunden. Bitte Suchbegriff anpassen.' (server.py:286)",
+        "wsl_get_avalanche_data hat Fallback ohne org-Filter wenn SLF-Filter null Treffer liefert (server.py:777-781)"
+      ],
+      "gaps": [
+        "Kein Fuzzy-Search / Suggestion-Pattern bei Misses in den meisten Tools",
+        "Keine 'Did you mean'-Heuristik (z.B. Tag-Prefix-Vorschläge bei wsl_list_tags)"
+      ]
+    },
+    "ARCH-004": {
+      "status": "pass",
+      "category": "ARCH",
+      "severity": "high",
+      "evidence": [
+        "Tool-Handler nehmen ausschliesslich Pydantic-Input-Modelle entgegen (server.py:312, 360, 460, 515, ...)",
+        "Kein Zugriff auf Request/websocket/stdin/stdout in Tool-Handlern (grep src/ → 0 matches)",
+        "Transport-Auswahl ist auf main() in server.py:1028-1040 zentralisiert"
+      ],
+      "gaps": []
+    },
+    "ARCH-005": {
+      "status": "pass",
+      "category": "ARCH",
+      "severity": "critical",
+      "evidence": [
+        "Kein API-Key erforderlich — README explizit 'No API key required' (README.md:39)",
+        "Pattern-Suche nach api_key/password/secret/token-Literalen >16 Chars: 0 Treffer in src/",
+        "Nur zwei Env-Vars im Code: MCP_TRANSPORT, PORT (server.py:1032-1033) — keine Secrets",
+        ".gitignore enthält .env (defacto, da Repo öffentlich und nichts geleakt)"
+      ],
+      "gaps": []
+    },
+    "ARCH-006": {
+      "status": "partial",
+      "category": "ARCH",
+      "severity": "high",
+      "evidence": [
+        "12 Tools — am oberen Rand des akzeptablen Bereichs (8-15)",
+        "Thematische Tools (wsl_get_avalanche_data, wsl_get_forest_data, wsl_get_naturgefahren_data) sind High-Level-Use-Case-Wrapper mit kuratierten Solr-Queries",
+        "wsl_catalog_stats aggregiert intern parallel (total + orgs + 5 Domain-Counts) — Pass-Pattern für Composability (server.py:914-926)"
+      ],
+      "gaps": [
+        "wsl_search_datasets, wsl_get_dataset, wsl_list_organizations, wsl_get_organization, wsl_list_tags sind 1:1 CKAN-API-Mappings — drei davon könnten zu Resources werden (vgl. ARCH-008)",
+        "wsl_search_datasets + wsl_search_by_domain + wsl_search_by_location decken überlappende Use-Cases ab; ein einziger smarter search mit optional domain/bbox wäre LLM-freundlicher"
+      ]
+    },
+    "ARCH-007": {
+      "status": "pass",
+      "category": "ARCH",
+      "severity": "medium",
+      "evidence": [
+        "wsl_catalog_stats führt sequenziell aber gleichwertig aggregierend total + orgs + per-domain-search durch und liefert ein zusammengefasstes Markdown-Dashboard (server.py:914-971)",
+        "Tool-Granularität: User-LLM ruft EIN Tool, bekommt vollständige Antwort statt mehrerer Round-Trips"
+      ],
+      "gaps": [
+        "wsl_catalog_stats nutzt sequenzielle await statt asyncio.gather — N+1-Latenz bei N=7 API-Calls (server.py:915-926)"
+      ]
+    },
+    "ARCH-008": {
+      "status": "pass",
+      "category": "ARCH",
+      "severity": "medium",
+      "evidence": [
+        "Zwei MCP-Resources registriert: envidat://organization/{name} und envidat://domain/{domain} (server.py:980, 994)",
+        "Resources liefern statisch-cachebare JSON-Strukturen, passend zum Resource-Pattern"
+      ],
+      "gaps": [
+        "Keine MCP-Prompts genutzt — die fünf Domain-Schema-Erklärungen (wald/biodiversitaet/...) wären naheliegende Prompt-Templates"
+      ]
+    },
+    "ARCH-009": {
+      "status": "pass",
+      "category": "ARCH",
+      "severity": "high",
+      "evidence": [
+        "Alle 12 Tools haben annotations={readOnlyHint, destructiveHint, idempotentHint, openWorldHint} (grep zeigt 48 Hint-Vorkommen = 12 × 4)",
+        "readOnlyHint=True und destructiveHint=False für alle Tools — konsistent mit Read-only-Phase",
+        "wsl_get_recent_datasets korrekt mit idempotentHint=False markiert (Resultset ändert sich über Zeit, server.py:710)",
+        "wsl_list_organizations/wsl_list_tags/wsl_catalog_stats mit openWorldHint=False (geschlossene Liste, server.py:563, 672, 900)"
+      ],
+      "gaps": []
+    },
+    "ARCH-011": {
+      "status": "pass",
+      "category": "ARCH",
+      "severity": "medium",
+      "evidence": [
+        "Alle Pflicht-Files vorhanden: README.md, README.de.md, CHANGELOG.md, LICENSE, pyproject.toml",
+        "Alle Pflicht-Verzeichnisse vorhanden: src/, tests/, .github/workflows/",
+        "src-Layout korrekt: src/wsl_envidat_mcp/ statt direkt src/ (pyproject.toml: packages=['src/wsl_envidat_mcp'])",
+        "Build-Backend hatchling deklariert"
+      ],
+      "gaps": []
+    },
+    "ARCH-012": {
+      "status": "partial",
+      "category": "ARCH",
+      "severity": "medium",
+      "evidence": [
+        "CHANGELOG.md vorhanden",
+        "Dependency-Pin mcp>=1.3.0 in pyproject.toml — Mindest-SDK-Version definiert",
+        "Python-Pin: requires-python='>=3.11' (pyproject.toml:11)"
+      ],
+      "gaps": [
+        "Kein protocol_version-Pinning in FastMCP-Init (server.py:48) — der MCP-Protokoll-Stand ist implizit über die SDK-Version geregelt",
+        "Bei SDK-Upgrade auf neue Spec-Version (z.B. 2025-06-18 → 2026-xx-yy) kann ohne explizites Pinning das Protokoll unbemerkt wechseln"
+      ]
+    },
+    "CH-004": {
+      "status": "partial",
+      "category": "CH",
+      "severity": "medium",
+      "evidence": [
+        "README.md 'Safety & Limits' nennt 'Data is subject to the EnviDat Terms of Use ... published under various open licenses (Creative Commons, CC0)' (README.md:237)",
+        "wsl_get_dataset liefert pkg.get('license_title') als 'Lizenz:'-Zeile in der Markdown-Ausgabe (server.py:388, 404)",
+        "Tool-Output verlinkt jeweils auf den EnviDat-Datensatz-Slug — Source-Attribution implizit gegeben"
+      ],
+      "gaps": [
+        "Keine strukturierte source/license/provenance-Felder in den Tool-Returns (kein Pydantic-Output-Modell für OGD-Compliance)",
+        "Suchergebnisse (_format_search_results) zeigen keine Lizenz pro Dataset, nur den Title",
+        "JSON-Output enthält kein license-Feld in der dataset-Liste (server.py:267-282)"
+      ]
+    },
+    "OBS-001": {
+      "status": "partial",
+      "category": "OBS",
+      "severity": "high",
+      "evidence": [
+        "Jeder Tool-Handler hat try/except mit handle_api_error (api_client.py:120-136) — Execution-Errors werden nicht als Protocol-Exceptions geraist",
+        "HTTP-Status-Codes 404/403/429 werden zu lesbaren deutschen Hinweisen für den LLM (api_client.py:124-131)"
+      ],
+      "gaps": [
+        "Tools returnen plain strings statt strukturierter {isError: True, content: [TextContent]}-Antworten — der MCP-Client kann nicht zuverlässig unterscheiden zwischen Success-Output und Error-Output",
+        "Keine Differenzierung zwischen retryable (Timeout) und permanent (404 Not Found) auf Type-Ebene"
+      ]
+    },
+    "OBS-002": {
+      "status": "pass",
+      "category": "OBS",
+      "severity": "high",
+      "evidence": [
+        "handle_api_error wirft keine Tracebacks — gibt nur HTTP-Code + ersten 200 Zeichen Body zurück (api_client.py:131)",
+        "Keine format_exc/sys.exc_info/traceback-Aufrufe im src/-Code (grep: 0 matches)",
+        "ValueError aus CKAN ('success': false) wird zu 'API-Fehler: {error}' gemappt — kein Internal-Pythonic-Detail",
+        "Connection-Strings, SQL, Stacktraces sind nicht im Codepath enthalten (kein DB-Layer)"
+      ],
+      "gaps": []
+    },
+    "OBS-003": {
+      "status": "fail",
+      "category": "OBS",
+      "severity": "medium",
+      "evidence": [
+        "Logging via stdlib logging.basicConfig mit Plain-String-Format '%(asctime)s [%(levelname)s] %(name)s: %(message)s' (server.py:39-43)"
+      ],
+      "gaps": [
+        "Kein structlog/loguru in dependencies (pyproject.toml:25-29) — Logs sind nicht maschinen-parsbar JSON",
+        "Keine bound context-fields (tool, request_id, user) pro Tool-Aufruf — Tracing über mehrere Tools hinweg nicht möglich",
+        "Severity-Mapping zu RFC 5424 nicht explizit (INFO/WARN/ERROR statt notice/warning/critical/alert)"
+      ]
+    },
+    "OBS-004": {
+      "status": "pass",
+      "category": "OBS",
+      "severity": "critical",
+      "evidence": [
+        "logging.basicConfig(stream=sys.stderr, ...) explizit auf stderr konfiguriert (server.py:42)",
+        "Keine print()-Aufrufe in src/ (grep -nE 'print\\(' src/: 0 matches)",
+        "Stdout bleibt frei für JSON-RPC-Protokoll-Stream"
+      ],
+      "gaps": []
+    },
+    "OPS-001": {
+      "status": "fail",
+      "category": "OPS",
+      "severity": "high",
+      "evidence": [
+        "tests/test_integration.py vorhanden — macht Live-Calls zu envidat.ch",
+        "tests/test_20_szenarien.py vorhanden — 20 Live-Tests für alle 12 Tools",
+        "CI führt nur python tests/test_integration.py aus (ci.yml:41) — keine pytest-Discovery"
+      ],
+      "gaps": [
+        "Keine Unit-Tests mit gemockter HTTP-Schicht: respx/pytest-httpx fehlt in dev-dependencies (pyproject.toml:32-36)",
+        "Keine Trennung tests/test_unit.py vs tests/test_live.py per Pytest-Marker — README spricht zwar von 'PYTHONPATH=src pytest tests/ -m \"not live\"' (README.md:248), aber kein Test ist mit @pytest.mark.live versehen",
+        "CI scheitert bei envidat.ch-Ausfall — Tests sind nicht offline-fähig",
+        "Keine Coverage-Messung"
+      ]
+    },
+    "OPS-002": {
+      "status": "partial",
+      "category": "OPS",
+      "severity": "medium",
+      "evidence": [
+        "Bilingual: README.md (EN) + README.de.md (DE) (README.md:14)",
+        "ASCII-Architekturdiagramm vorhanden (README.md:160-172)",
+        "Pflicht-Sektionen: Demo, Installation, Configuration, Tools, Architecture, Limitations, Safety & Limits, License — alle vorhanden",
+        "Anchor-Demo-Query explizit (README.md:25): 'How was air quality and forest health around Schulhaus Leutschenbach...'"
+      ],
+      "gaps": [
+        "README.de.md hat keine explizite 'Anker-Demo-Frage'-Sektion analog zur englischen Version",
+        "Keine separate 'Phase'-Sektion (siehe OPS-003)"
+      ]
+    },
+    "OPS-003": {
+      "status": "partial",
+      "category": "OPS",
+      "severity": "high",
+      "evidence": [
+        "Alle 12 Tools mit readOnlyHint=True und destructiveHint=False — eindeutig Phase 1 (Read-only Wrapper)",
+        "Keine Write-Tools, keine Semantic-Layer-Aggregation, kein OAuth — konsistent mit Phase 1"
+      ],
+      "gaps": [
+        "Keine explizite 'Phase'-Deklaration im README (weder EN noch DE)",
+        "Keine docs/roadmap.md mit Phase-2/3-Plan",
+        "Keine Audit-Run-Notiz im README (Datum, Skill-Version, Status)"
+      ]
+    },
+    "SCALE-002": {
+      "status": "partial",
+      "category": "SCALE",
+      "severity": "high",
+      "evidence": [
+        "Server unterstützt streamable_http via MCP_TRANSPORT env var (server.py:1037-1038)",
+        "FastMCP managed Session-State intern; bei einem einzelnen Replica trivial"
+      ],
+      "gaps": [
+        "Kein railway.toml/render.yaml/k8s-Manifest/Dockerfile im Repo — bei Multi-Replica-Cloud-Deployment würde Session-Affinity fehlen",
+        "Keine Dokumentation zu Sticky-Session-Anforderung in README 'Cloud Deployment'-Sektion (README.md:107)"
+      ]
+    },
+    "SEC-004": {
+      "status": "pass",
+      "category": "SEC",
+      "severity": "critical",
+      "evidence": [
+        "Base-URL hardcoded auf https://www.envidat.ch/api/action (api_client.py:20) — User kann Host/Scheme nicht überschreiben",
+        "Alle httpx-Calls binden über base_url an exakt diese Domain (api_client.py:99-107)",
+        "User-Input fliesst ausschliesslich in URL-Query-Parameter (?q=, ?id=, ?fq=, ?ext_bbox=) — kein URL-Konstrukt aus User-Input",
+        "SearchByLocationInput erzwingt lat/lon-Bereiche -180..180 / -90..90 (server.py:178-200), kein String-Injection in den bbox-Wert"
+      ],
+      "gaps": [
+        "Kein expliziter IP-Blocklist-Check — nicht nötig solange Base-URL gepinnt ist, aber Defense-in-Depth fehlt für den Fall künftiger Multi-Host-Erweiterung"
+      ]
+    },
+    "SEC-005": {
+      "status": "partial",
+      "category": "SEC",
+      "severity": "high",
+      "evidence": [
+        "Server macht nur Calls gegen die fest verdrahtete envidat.ch-Domain — Angreifer hat keinen DNS-Einfluss",
+        "follow_redirects=True (api_client.py:106) — Redirects bleiben aber durch die Base-URL-Bindung auf den ursprünglichen Origin beschränkt? Eigentlich nicht: httpx folgt cross-domain Redirects."
+      ],
+      "gaps": [
+        "follow_redirects=True kann theoretisch zu cross-origin-Redirect von envidat.ch zu beliebiger Domain führen — keine Redirect-Domain-Validierung",
+        "Kein DNS-Pinning: zweite DNS-Auflösung beim eigentlichen Request wäre möglich, aber praktisch low-impact da envidat.ch-Resolver vertrauenswürdig ist"
+      ]
+    },
+    "SEC-006": {
+      "status": "pass",
+      "category": "SEC",
+      "severity": "high",
+      "evidence": [
+        "Default transport ist stdio: os.environ.get('MCP_TRANSPORT', 'stdio') (server.py:1032)",
+        "Streamable HTTP nur via expliziter ENV-Var MCP_TRANSPORT=streamable_http (README.md:107-112)",
+        "Quickstart-Beispiele für Claude Desktop nutzen ausschliesslich stdio (README.md:77-85)"
+      ],
+      "gaps": []
+    },
+    "SEC-007": {
+      "status": "fail",
+      "category": "SEC",
+      "severity": "high",
+      "evidence": [
+        "Distribution erfolgt via pip/uvx (README.md:55-60) — Standard-Python-Sandbox"
+      ],
+      "gaps": [
+        "Kein Dockerfile im Repo — Defense-in-Depth gegen kompromittierte Dependencies fehlt",
+        "Keine k8s/helm-Konfiguration mit readOnlyRootFilesystem/runAsNonRoot/seccomp",
+        "Bei Streamable-HTTP-Deployment (Railway/Render etc.) wäre ein gehärtetes Container-Image Pflicht"
+      ]
+    },
+    "SEC-008": {
+      "status": "pass",
+      "category": "SEC",
+      "severity": "medium",
+      "evidence": [
+        "pyproject.toml hat nur Standard-entry-point [project.scripts] (pyproject.toml:38-39) — keine custom cmdclass/postinstall-Hooks",
+        "Build-System hatchling — kein setup.py mit Code-Ausführung",
+        "README zeigt vollen Install-Befehl 'uvx wsl-envidat-mcp' (README.md:57) — User sieht was installiert wird",
+        "Quickstart-Konfiguration für Claude Desktop ist transparent dokumentiert (README.md:73-85)"
+      ],
+      "gaps": []
+    },
+    "SEC-009": {
+      "status": "partial",
+      "category": "SEC",
+      "severity": "critical",
+      "evidence": [
+        "Server-Code definiert keine custom Session-ID-Generierung — Verantwortung liegt beim FastMCP-SDK (mcp>=1.3.0)",
+        "Bei auth_model=none existiert keine User-Identität, die in eine session_id gebunden werden könnte — der Mitigationsschritt 2 (user_id:session_id) ist strukturell nicht anwendbar"
+      ],
+      "gaps": [
+        "Keine eigene Validierung der vom SDK generierten Session-IDs (Entropie, Format) — ein SDK-Bug oder eine zukünftige SDK-Regression bliebe unbemerkt",
+        "Bei Streamable-HTTP-Deployment ohne Auth besteht inhärentes Risiko: jeder, der die Session-ID rät/abfängt, hat Voll-Zugriff auf die laufende Konversation"
+      ]
+    },
+    "SEC-013": {
+      "status": "pass",
+      "category": "SEC",
+      "severity": "high",
+      "evidence": [
+        "Kein API-Key — Server nutzt nur öffentliche unauth. CKAN-API (README.md:39, 99-105)",
+        "Nur zwei Env-Vars konsumiert: MCP_TRANSPORT, PORT (server.py:1032-1033) — beide nicht sensitiv",
+        "Keine boto3/secretsmanager/vault-Imports nötig — Trivially satisfied weil kein Secret"
+      ],
+      "gaps": []
+    },
+    "SEC-016": {
+      "status": "partial",
+      "category": "SEC",
+      "severity": "critical",
+      "evidence": [
+        "Kein hardcoded host='0.0.0.0' im Code (grep -rE '0\\.0\\.0\\.0' src/ .github/: 0 matches)",
+        "mcp.run(transport='streamable_http', port=port) ohne explizites host-Argument (server.py:1038)"
+      ],
+      "gaps": [
+        "Host wird nicht explizit auf 127.0.0.1 gesetzt — Default-Verhalten ist abhängig von mcp-SDK-Version. Aktuelle FastMCP-Defaults binden auf 127.0.0.1, aber das ist nicht im Code verankert",
+        "Keine Differenzierung zwischen local-development (127.0.0.1 zwingend) und container-deployment (0.0.0.0 nötig für Container-Netz) — wenn Cloud-Deployment hinzukommt, fehlt das Pattern"
+      ]
+    },
+    "SEC-018": {
+      "status": "pass",
+      "category": "SEC",
+      "severity": "high",
+      "evidence": [
+        "Alle 8 Pydantic-Input-Modelle verwenden ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra='forbid') (server.py:79, 116, 135, 158, 175, 223, 234, 243)",
+        "Field-Constraints überall gesetzt: min_length/max_length (server.py:88-89, 124-125), ge/le (server.py:181-189, 96, 99-101)",
+        "Custom validators für bbox-Range (max_lon > min_lon, max_lat > min_lat) (server.py:207-218)",
+        "Enum-Typen statt freie Strings: WSLDomain, ResponseFormat (server.py:63-75) — verhindert Magic-Strings"
+      ],
+      "gaps": []
+    },
+    "SEC-019": {
+      "status": "pass",
+      "category": "SEC",
+      "severity": "critical",
+      "evidence": [
+        "Trifecta-Bewertung: (1) Private Daten: NEIN — nur Public Open Data von envidat.ch. (2) Untrusted Content: TEILWEISE — Dataset-notes/-titel von Forschern, aber nicht user-generated. (3) Externe Kommunikation: NEIN — Server macht nur HTTP-GET, kein POST/E-Mail/Slack",
+        "Alle 12 Tools mit readOnlyHint=True und destructiveHint=False — keine Write-Kapazität",
+        "Keine fetch/requests.post oder externer Sendemechanismus im Code"
+      ],
+      "gaps": []
+    },
+    "SEC-020": {
+      "status": "pass",
+      "category": "SEC",
+      "severity": "critical",
+      "evidence": [
+        "grep -rE 'os\\.system|shell=True|\\beval\\(|\\bexec\\(' src/: 0 matches",
+        "Keine subprocess-Aufrufe im Code",
+        "Keine Filesystem-Pfade aus User-Input — nur API-Slugs gehen in httpx Query-Params (URL-encoded durch httpx)"
+      ],
+      "gaps": []
+    },
+    "SEC-021": {
+      "status": "partial",
+      "category": "SEC",
+      "severity": "high",
+      "evidence": [
+        "De-facto-Allow-List: einzige externe Domain ist envidat.ch über die hardcoded Base-URL (api_client.py:20)",
+        "Keine User-controllable URL/Host-Parameter in den Tool-Inputs"
+      ],
+      "gaps": [
+        "Keine explizite ALLOWED_HOSTS frozenset im Code — Pattern fehlt für Defense-in-Depth wenn künftig weitere Quellen dazukommen",
+        "follow_redirects=True (api_client.py:106) erlaubt theoretisch cross-domain-Redirect zu beliebigem Host — Network-Layer-Egress-Control fehlt vollständig",
+        "Keine Network-Policy / Egress-Allow-List auf Deployment-Ebene dokumentiert"
+      ]
+    }
+  }
+}
