@@ -21,6 +21,7 @@ from typing import Any, Optional
 
 import structlog
 from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp.exceptions import ToolError
 from mcp.types import LATEST_PROTOCOL_VERSION
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -279,10 +280,30 @@ class SimpleQueryInput(BaseModel):
 # ─── Hilfsfunktion: Suchergebnisse formatieren ───────────────────────────────
 
 
+async def _suggest_tags(seed: str | None, *, limit: int = 5) -> list[str]:
+    """Liefert verwandte Tags für leere Suchergebnisse (ARCH-003).
+
+    Nimmt das erste Wort der ursprünglichen Query als Tag-Prefix.
+    Wenn das fehlschlägt oder zu wenige Treffer kommen, gibt eine
+    leere Liste zurück — die Suggestion ist Best-Effort, kein Pflicht.
+    """
+    if not seed:
+        return []
+    prefix = seed.split()[0][:8].strip().lower()
+    if not prefix:
+        return []
+    try:
+        tags = await ckan_tag_list(query=prefix)
+    except Exception:
+        return []
+    return list(tags or [])[:limit]
+
+
 def _format_search_results(
     result: dict[str, Any],
     response_format: ResponseFormat,
     title: str = "EnviDat Suchergebnisse",
+    suggestions: list[str] | None = None,
 ) -> str:
     """Formatiert Suchergebnisse einheitlich für alle Such-Tools."""
     packages = result.get("results", [])
@@ -319,7 +340,14 @@ def _format_search_results(
         )
 
     if not packages:
-        return "Keine Datensätze gefunden. Bitte Suchbegriff anpassen."
+        msg = "Keine Datensätze gefunden. Bitte Suchbegriff anpassen."
+        if suggestions:
+            hints = ", ".join(f"`{t}`" for t in suggestions)
+            msg += (
+                f"\n\n**Mögliche verwandte Tags:** {hints}"
+                "\n\n_Hinweis: Mit `wsl_list_tags` lassen sich weitere Tags durchsuchen._"
+            )
+        return msg
 
     lines = [f"## {title}", f"**{count} Datensätze gefunden** (zeige {shown}):\n"]
     for i, pkg in enumerate(packages, 1):
@@ -337,6 +365,18 @@ def _format_search_results(
 
 @mcp.tool(
     name="wsl_search_datasets",
+    description=(
+        "Durchsucht den EnviDat-Katalog der WSL (Eidg. Forschungsanstalt "
+        "für Wald, Schnee und Landschaft) nach Umweltforschungs-Datensätzen.\n\n"
+        "<use_case>Schweizer Umweltforschung, Schulhaus-Umgebungsanalysen, "
+        "Klimafolgen-Recherche, kantonale Umweltberichte, Schnee-/Lawinen-/"
+        "Walddaten, Biodiversität, Naturgefahren.</use_case>\n\n"
+        "<important_notes>Solr-Syntax möglich, aber 'OR' ist Stopwort — "
+        "einzelne präzise Begriffe liefern bessere Ergebnisse. Bei leerem "
+        "Resultat liefert das Tool verwandte Tags als Vorschlag.</important_notes>\n\n"
+        "<example>query='snow avalanche' → SLF-Lawinenforschungsdatensätze. "
+        "query='bark beetle', organization='wsl' → Borkenkäfer-Monitoring.</example>"
+    ),
     annotations={
         "title": "EnviDat Datensätze suchen",
         "readOnlyHint": True,
@@ -371,13 +411,18 @@ async def wsl_search_datasets(params: SearchDatasetsInput) -> str:
             rows=params.limit,
             start=params.offset,
         )
+        # ARCH-003: Bei leerem Resultat best-effort Tag-Suggestion mitliefern.
+        suggestions: list[str] | None = None
+        if not result.get("results"):
+            suggestions = await _suggest_tags(params.query)
         return _format_search_results(
             result,
             params.response_format,
             title=f"Suchergebnisse für «{params.query}»",
+            suggestions=suggestions,
         )
     except Exception as e:
-        return handle_api_error(e, "wsl_search_datasets")
+        raise ToolError(handle_api_error(e, "wsl_search_datasets")) from e
 
 
 # ─── Tool 2: Datensatz-Details ────────────────────────────────────────────────
@@ -385,6 +430,18 @@ async def wsl_search_datasets(params: SearchDatasetsInput) -> str:
 
 @mcp.tool(
     name="wsl_get_dataset",
+    description=(
+        "Gibt vollständige Metadaten und Ressourcen (Download-URLs) eines "
+        "EnviDat-Datensatzes zurück.\n\n"
+        "<use_case>Detail-Ansicht eines konkreten Datensatzes mit DOI, "
+        "Lizenz, Autoren, Download-Links und räumlicher Ausdehnung. "
+        "Folge-Schritt nach wsl_search_datasets.</use_case>\n\n"
+        "<important_notes>id_or_slug ist entweder die UUID oder der URL-Slug "
+        "aus dem Suchergebnis (Feld 'name'). Liefert auch nicht-öffentliche "
+        "Resource-Metadaten wenn vorhanden.</important_notes>\n\n"
+        "<example>id_or_slug='fatal-avalanche-accidents-in-switzerland-since-1936-37' "
+        "→ vollständige Lawinen-Datenbankbeschreibung mit CSV-Download-Link.</example>"
+    ),
     annotations={
         "title": "EnviDat Datensatz-Details",
         "readOnlyHint": True,
@@ -477,7 +534,7 @@ async def wsl_get_dataset(params: GetDatasetInput) -> str:
         return "\n".join(lines)
 
     except Exception as e:
-        return handle_api_error(e, "wsl_get_dataset")
+        raise ToolError(handle_api_error(e, "wsl_get_dataset")) from e
 
 
 # ─── Tool 3: Suche nach Domäne ────────────────────────────────────────────────
@@ -485,6 +542,19 @@ async def wsl_get_dataset(params: GetDatasetInput) -> str:
 
 @mcp.tool(
     name="wsl_search_by_domain",
+    description=(
+        "Sucht WSL/EnviDat-Datensätze in einer kuratierten Forschungsdomäne.\n\n"
+        "<use_case>Thematische Übersicht ohne explizite Stichwortsuche — "
+        "wenn der User nach 'Walddaten', 'Schneeforschung', 'Biodiversität' "
+        "fragt, statt nach einem konkreten Term.</use_case>\n\n"
+        "<important_notes>Domänen-Werte: wald (LFI/Sanasilva/Borkenkäfer), "
+        "biodiversitaet (Arten/Habitate), naturgefahren (Lawinen/Murgang/"
+        "Steinschlag), schnee_eis (Gletscher/Permafrost/SLF), landschaft "
+        "(Landnutzung/Trockenheit). Nutzt domain-optimierte Solr-Queries — "
+        "präziser als wsl_search_datasets mit dem Domain-Namen.</important_notes>\n\n"
+        "<example>domain='wald' → Landesforstinventar + Sanasilva. "
+        "domain='naturgefahren' → Lawinenunfälle + Rutschungen.</example>"
+    ),
     annotations={
         "title": "WSL-Domäne durchsuchen",
         "readOnlyHint": True,
@@ -532,7 +602,7 @@ async def wsl_search_by_domain(params: SearchByDomainInput) -> str:
             title=f"Forschungsdomäne {domain_label}",
         )
     except Exception as e:
-        return handle_api_error(e, "wsl_search_by_domain")
+        raise ToolError(handle_api_error(e, "wsl_search_by_domain")) from e
 
 
 # ─── Tool 4: Räumliche Suche ──────────────────────────────────────────────────
@@ -540,6 +610,18 @@ async def wsl_search_by_domain(params: SearchByDomainInput) -> str:
 
 @mcp.tool(
     name="wsl_search_by_location",
+    description=(
+        "Sucht WSL/EnviDat-Datensätze in einem geografischen Begrenzungsrahmen.\n\n"
+        "<use_case>Standortspezifische Umweltanalysen: Schulareal-Umgebung, "
+        "Kanton-Reports, Alpenraum-Studien, Lake-Constance-Region.</use_case>\n\n"
+        "<important_notes>Bounding-Box als (min_lon, min_lat, max_lon, max_lat) "
+        "in Dezimalgrad. Schweiz gesamt: 5.95,45.8,10.5,47.8. Filterung ist "
+        "approximativ — einzelne Datensätze haben evtl. weitere Ausdehnung."
+        "</important_notes>\n\n"
+        "<example>Kanton Zürich: min_lon=8.35, min_lat=47.15, max_lon=8.98, "
+        "max_lat=47.72. Optional zusätzlich query='avalanche' zur Einengung."
+        "</example>"
+    ),
     annotations={
         "title": "Räumliche Datensatz-Suche",
         "readOnlyHint": True,
@@ -583,7 +665,7 @@ async def wsl_search_by_location(params: SearchByLocationInput) -> str:
             title=f"Datensätze in {location_str}",
         )
     except Exception as e:
-        return handle_api_error(e, "wsl_search_by_location")
+        raise ToolError(handle_api_error(e, "wsl_search_by_location")) from e
 
 
 # ─── Tool 5: Organisationen auflisten ─────────────────────────────────────────
@@ -632,7 +714,7 @@ async def wsl_list_organizations() -> str:
         return "\n".join(lines)
 
     except Exception as e:
-        return handle_api_error(e, "wsl_list_organizations")
+        raise ToolError(handle_api_error(e, "wsl_list_organizations")) from e
 
 
 # ─── Tool 6: Organisation-Details ─────────────────────────────────────────────
@@ -692,7 +774,7 @@ async def wsl_get_organization(params: GetOrganizationInput) -> str:
         return "\n".join(lines)
 
     except Exception as e:
-        return handle_api_error(e, "wsl_get_organization")
+        raise ToolError(handle_api_error(e, "wsl_get_organization")) from e
 
 
 # ─── Tool 7: Tags auflisten ───────────────────────────────────────────────────
@@ -731,7 +813,7 @@ async def wsl_list_tags(params: ListTagsInput) -> str:
             f"`{t}`" for t in filtered
         )
     except Exception as e:
-        return handle_api_error(e, "wsl_list_tags")
+        raise ToolError(handle_api_error(e, "wsl_list_tags")) from e
 
 
 # ─── Tool 8: Aktuelle Datensätze ──────────────────────────────────────────────
@@ -771,7 +853,7 @@ async def wsl_get_recent_datasets(params: GetRecentDatasetsInput) -> str:
             title="Zuletzt aktualisierte WSL-Datensätze",
         )
     except Exception as e:
-        return handle_api_error(e, "wsl_get_recent_datasets")
+        raise ToolError(handle_api_error(e, "wsl_get_recent_datasets")) from e
 
 
 # ─── Tool 9: Lawinendaten ─────────────────────────────────────────────────────
@@ -821,7 +903,7 @@ async def wsl_get_avalanche_data(params: SimpleQueryInput) -> str:
             title="❄️ SLF Lawinen- & Schneedaten",
         )
     except Exception as e:
-        return handle_api_error(e, "wsl_get_avalanche_data")
+        raise ToolError(handle_api_error(e, "wsl_get_avalanche_data")) from e
 
 
 # ─── Tool 10: Walddaten ───────────────────────────────────────────────────────
@@ -869,7 +951,7 @@ async def wsl_get_forest_data(params: SimpleQueryInput) -> str:
             title="🌲 Walddaten & Forstinventar (LFI)",
         )
     except Exception as e:
-        return handle_api_error(e, "wsl_get_forest_data")
+        raise ToolError(handle_api_error(e, "wsl_get_forest_data")) from e
 
 
 # ─── Tool 11: Naturgefahren ───────────────────────────────────────────────────
@@ -920,7 +1002,7 @@ async def wsl_get_naturgefahren_data(params: SimpleQueryInput) -> str:
             title="⛰️ Naturgefahren-Daten der WSL",
         )
     except Exception as e:
-        return handle_api_error(e, "wsl_get_naturgefahren_data")
+        raise ToolError(handle_api_error(e, "wsl_get_naturgefahren_data")) from e
 
 
 # ─── Tool 12: Katalog-Statistiken ─────────────────────────────────────────────
@@ -1007,7 +1089,7 @@ async def wsl_catalog_stats() -> str:
         return "\n".join(lines)
 
     except Exception as e:
-        return handle_api_error(e, "wsl_catalog_stats")
+        raise ToolError(handle_api_error(e, "wsl_catalog_stats")) from e
 
 
 # ─── Resources ────────────────────────────────────────────────────────────────
@@ -1024,7 +1106,9 @@ async def get_organization_resource(name: str) -> str:
         org = await ckan_organization_show(name, include_datasets=True)
         return json.dumps(org, indent=2, ensure_ascii=False)
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        # Resource-Errors propagieren als JSON-RPC-Fehler (statt als
+        # "erfolgreiche" Resource-Read mit Error-Payload).
+        raise RuntimeError(handle_api_error(e, "envidat://organization")) from e
 
 
 @mcp.resource("envidat://domain/{domain}")
@@ -1055,7 +1139,7 @@ async def get_domain_resource(domain: str) -> str:
             ensure_ascii=False,
         )
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        raise RuntimeError(handle_api_error(e, "envidat://domain")) from e
 
 
 # ─── Entry point ──────────────────────────────────────────────────────────────

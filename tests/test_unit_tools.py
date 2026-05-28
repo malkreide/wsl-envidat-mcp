@@ -16,6 +16,7 @@ from typing import Any
 import httpx
 import pytest
 import respx
+from mcp.server.fastmcp.exceptions import ToolError
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
@@ -95,26 +96,36 @@ async def test_wsl_search_datasets_json(
 
 
 @respx.mock
-async def test_wsl_search_datasets_empty() -> None:
+async def test_wsl_search_datasets_empty_returns_tag_suggestions() -> None:
+    """ARCH-003: leeres Resultat liefert verwandte Tags als Hinweis."""
     respx.get(f"{ENVIDAT_API_BASE}/package_search").mock(
         return_value=httpx.Response(
             200,
             json={"success": True, "result": {"count": 0, "results": []}},
         )
     )
+    respx.get(f"{ENVIDAT_API_BASE}/tag_list").mock(
+        return_value=httpx.Response(
+            200,
+            json={"success": True, "result": ["xyzzy-test", "xyzzy-data"]},
+        )
+    )
 
     out = await wsl_search_datasets(SearchDatasetsInput(query="xyzzy"))
     assert "Keine Datensätze gefunden" in out
+    assert "verwandte Tags" in out
+    assert "xyzzy-test" in out
 
 
 @respx.mock
-async def test_wsl_search_datasets_handles_timeout() -> None:
+async def test_wsl_search_datasets_raises_toolerror_on_timeout() -> None:
+    """OBS-001: Fehler werden als ToolError raised, nicht als Plain-String returned."""
     respx.get(f"{ENVIDAT_API_BASE}/package_search").mock(
         side_effect=httpx.TimeoutException("timeout")
     )
 
-    out = await wsl_search_datasets(SearchDatasetsInput(query="snow"))
-    assert "Zeitüberschreitung" in out
+    with pytest.raises(ToolError, match="Zeitüberschreitung"):
+        await wsl_search_datasets(SearchDatasetsInput(query="snow"))
 
 
 # ─── Tool 2: wsl_get_dataset ─────────────────────────────────────────────────
@@ -134,13 +145,14 @@ async def test_wsl_get_dataset_markdown(sample_dataset: dict[str, Any]) -> None:
 
 
 @respx.mock
-async def test_wsl_get_dataset_404() -> None:
+async def test_wsl_get_dataset_404_raises_toolerror() -> None:
+    """OBS-001: 404 wird als ToolError raised."""
     respx.get(f"{ENVIDAT_API_BASE}/package_show").mock(
         return_value=httpx.Response(404, text="not found")
     )
 
-    out = await wsl_get_dataset(GetDatasetInput(id_or_slug="missing-slug"))
-    assert "404" in out or "nicht gefunden" in out
+    with pytest.raises(ToolError, match="nicht gefunden|404"):
+        await wsl_get_dataset(GetDatasetInput(id_or_slug="missing-slug"))
 
 
 # ─── Tool 3: wsl_search_by_domain ────────────────────────────────────────────
