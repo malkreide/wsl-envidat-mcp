@@ -1029,14 +1029,27 @@ def main() -> None:
     """Startet den WSL/EnviDat MCP Server."""
     import os
 
-    transport = os.environ.get("MCP_TRANSPORT", "stdio")
+    # MCP-SDK akzeptiert "stdio" | "sse" | "streamable-http".
+    # Wir akzeptieren auch die Underscore-Variante "streamable_http" für
+    # Backward-Kompatibilität mit existierenden Claude-Desktop-Setups.
+    transport = os.environ.get("MCP_TRANSPORT", "stdio").replace("_", "-")
     port = int(os.environ.get("PORT", "8000"))
+    # SEC-016: lokaler Default 127.0.0.1 — 0.0.0.0 nur via expliziter
+    # Env-Var (Container-Netzwerk-Isolation). Verhindert NeighborJack im
+    # öffentlichen WLAN bei MCP_TRANSPORT=streamable-http.
+    host = os.environ.get("MCP_HOST", "127.0.0.1")
 
-    logger.info("WSL/EnviDat MCP Server startet (Transport: %s)", transport)
-
-    if transport == "streamable_http":
-        mcp.run(transport="streamable_http", port=port)
+    if transport == "streamable-http":
+        mcp.settings.host = host
+        mcp.settings.port = port
+        logger.info(
+            "WSL/EnviDat MCP Server startet (Transport: streamable-http, Host: %s, Port: %d)",
+            host,
+            port,
+        )
+        mcp.run(transport="streamable-http")
     else:
+        logger.info("WSL/EnviDat MCP Server startet (Transport: stdio)")
         mcp.run()
 
 

@@ -100,7 +100,8 @@ No API key required. Optional environment variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MCP_TRANSPORT` | `stdio` | Transport mode: `stdio` or `streamable_http` |
+| `MCP_TRANSPORT` | `stdio` | Transport mode: `stdio` or `streamable-http` (legacy `streamable_http` is accepted) |
+| `MCP_HOST` | `127.0.0.1` | Bind address for `streamable-http`. Use `0.0.0.0` **only** inside a container. |
 | `PORT` | `8000` | Port for Streamable HTTP mode |
 
 ### Cloud Deployment (Streamable HTTP)
@@ -108,10 +109,18 @@ No API key required. Optional environment variables:
 For use via **claude.ai in the browser** (e.g. on managed workstations without local software):
 
 ```bash
-MCP_TRANSPORT=streamable_http PORT=8000 python -m wsl_envidat_mcp.server
+# Local: keep MCP_HOST at its default 127.0.0.1
+MCP_TRANSPORT=streamable-http PORT=8000 python -m wsl_envidat_mcp.server
+
+# Container: bind to all interfaces inside the container only
+MCP_TRANSPORT=streamable-http MCP_HOST=0.0.0.0 PORT=8000 python -m wsl_envidat_mcp.server
 ```
 
-> 💡 *"stdio for the developer laptop, SSE for the browser."*
+> 💡 *"stdio for the developer laptop, streamable-http for the browser."*
+
+> ⚠️ **Multi-Replica Cloud Deployments:** Session state lives in the server.
+> Run a single replica or enable sticky sessions (Railway/Render setting,
+> or `sessionAffinity: ClientIP` on Kubernetes Services).
 
 ---
 

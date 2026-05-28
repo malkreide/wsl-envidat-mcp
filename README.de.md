@@ -100,7 +100,8 @@ Kein API-Schlüssel erforderlich. Optionale Umgebungsvariablen:
 
 | Variable | Standard | Beschreibung |
 |----------|----------|--------------|
-| `MCP_TRANSPORT` | `stdio` | Transportmodus: `stdio` oder `streamable_http` |
+| `MCP_TRANSPORT` | `stdio` | Transportmodus: `stdio` oder `streamable-http` (Legacy `streamable_http` wird akzeptiert) |
+| `MCP_HOST` | `127.0.0.1` | Bind-Adresse für `streamable-http`. `0.0.0.0` **nur** im Container verwenden. |
 | `PORT` | `8000` | Port für Streamable-HTTP-Modus |
 
 ### Cloud-Deployment (Streamable HTTP)
@@ -108,10 +109,19 @@ Kein API-Schlüssel erforderlich. Optionale Umgebungsvariablen:
 Für den Einsatz via **claude.ai im Browser** (z.B. auf verwalteten Arbeitsplätzen ohne lokale Software):
 
 ```bash
-MCP_TRANSPORT=streamable_http PORT=8000 python -m wsl_envidat_mcp.server
+# Lokal: MCP_HOST bei Default 127.0.0.1 belassen
+MCP_TRANSPORT=streamable-http PORT=8000 python -m wsl_envidat_mcp.server
+
+# Container: 0.0.0.0 nur innerhalb des Containers (Netzwerk-Isolation)
+MCP_TRANSPORT=streamable-http MCP_HOST=0.0.0.0 PORT=8000 python -m wsl_envidat_mcp.server
 ```
 
-> 💡 *«stdio für den Entwickler-Laptop, SSE für den Browser.»*
+> 💡 *«stdio für den Entwickler-Laptop, streamable-http für den Browser.»*
+
+> ⚠️ **Multi-Replica-Cloud-Deployments:** Session-State liegt im Server.
+> Bei Cloud-Deployment entweder ein einzelnes Replikat betreiben oder
+> Sticky Sessions aktivieren (Railway/Render-Einstellung oder
+> `sessionAffinity: ClientIP` auf Kubernetes Services).
 
 ---
 

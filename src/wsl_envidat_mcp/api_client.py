@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 
@@ -20,6 +21,24 @@ logger = logging.getLogger(__name__)
 ENVIDAT_API_BASE = "https://www.envidat.ch/api/action"
 ENVIDAT_PORTAL = "https://www.envidat.ch"
 REQUEST_TIMEOUT = 30.0  # Sekunden
+
+# Egress-Allow-List (SEC-021). Alle ausgehenden HTTP-Calls müssen auf einen
+# dieser Hosts gehen — Defense-in-Depth gegen Redirect-Hijack und gegen
+# spätere Drift in Richtung "alle Domains erlaubt".
+ALLOWED_HOSTS: frozenset[str] = frozenset(
+    {
+        "www.envidat.ch",
+        "envidat.ch",
+    }
+)
+
+
+def assert_host_allowed(url: str) -> None:
+    """Wirft PermissionError wenn der URL-Host nicht in ALLOWED_HOSTS ist."""
+    host = (urlparse(url).hostname or "").lower()
+    if host not in ALLOWED_HOSTS:
+        raise PermissionError(f"Host not in egress allow-list: {host!r}")
+
 
 # WSL-Forschungsdomänen → kuratierte Suchbegriffe
 DOMAIN_KEYWORDS: dict[str, list[str]] = {
@@ -95,7 +114,13 @@ DOMAIN_KEYWORDS: dict[str, list[str]] = {
 
 
 def _make_client() -> httpx.AsyncClient:
-    """Erstellt einen konfigurierten HTTP-Client."""
+    """Erstellt einen konfigurierten HTTP-Client.
+
+    follow_redirects=False (SEC-005, SEC-021): Cross-Origin-Redirects sind
+    nicht erlaubt. Bei einem 3xx-Response wirft httpx auf raise_for_status,
+    sodass Redirect-Hijacking kein stiller Failure-Mode ist.
+    """
+    assert_host_allowed(ENVIDAT_API_BASE)
     return httpx.AsyncClient(
         base_url=ENVIDAT_API_BASE,
         timeout=REQUEST_TIMEOUT,
@@ -103,7 +128,7 @@ def _make_client() -> httpx.AsyncClient:
             "User-Agent": "wsl-envidat-mcp/0.1.0 (github.com/malkreide/wsl-envidat-mcp)",
             "Accept": "application/json",
         },
-        follow_redirects=True,
+        follow_redirects=False,
     )
 
 
