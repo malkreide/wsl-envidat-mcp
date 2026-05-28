@@ -16,6 +16,26 @@
 
 ---
 
+## Phase
+
+Dieser Server befindet sich in **Phase 1: Read-only Wrapper**.
+
+| Eigenschaft | Status |
+|---|---|
+| Read-Tools | ✅ 12 Tools, alle `readOnlyHint: true` |
+| Write-Tools | ❌ keine (EnviDat ist Read-only Public Data) |
+| Semantic Layer | ⚠️ teilweise — drei Domain-Tools nutzen kuratierte Solr-Queries |
+| OAuth / Auth-Gateway | ❌ nicht erforderlich (Public Open Data, kein API-Key) |
+| Container-Härtung | ✅ Multi-Stage-Dockerfile, non-root |
+| Test-Suite | ✅ 38 Offline-Unit-Tests + 31 Live-Integrationstests |
+| Audit-Run | ✅ 2026-05-27 (mcp-audit-skill v1.0.0) |
+
+Phase-2-Ideen (Caching-Layer, Semantic-Aggregations-Tool das Wald +
+Schnee + Naturgefahren zu einer Lage-Übersicht kombiniert): vermerkt
+unter `docs/`.
+
+---
+
 ## Übersicht
 
 Die **WSL** (Eidgenössische Forschungsanstalt für Wald, Schnee und Landschaft) ist eine der führenden Umweltforschungsanstalten Europas. Ihre Offene-Daten-Plattform **[EnviDat](https://www.envidat.ch)** bietet Zugang zu 1'000+ Forschungsdatensätzen, Zeitreihen von bis zu 130 Jahren und Daten von 6'000+ Monitoring-Stationen.
@@ -122,6 +142,12 @@ MCP_TRANSPORT=streamable-http MCP_HOST=0.0.0.0 PORT=8000 python -m wsl_envidat_m
 > Bei Cloud-Deployment entweder ein einzelnes Replikat betreiben oder
 > Sticky Sessions aktivieren (Railway/Render-Einstellung oder
 > `sessionAffinity: ClientIP` auf Kubernetes Services).
+
+> ⚠️ **Multi-Tenant / Streamable HTTP ohne Auth:** Dieser Server hat
+> keine Auth-Schicht (`auth_model: none`). Streamable HTTP ohne
+> Reverse-Proxy + OAuth/API-Gateway ist nur für Einzel-User-Deployments
+> gedacht (z.B. eine claude.ai-Browser-Session). Für Multi-Tenant-Betrieb
+> muss ein authentifizierender Gateway vorgeschaltet werden.
 
 #### Container-Image (empfohlen für Cloud)
 
