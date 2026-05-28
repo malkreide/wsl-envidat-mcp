@@ -252,15 +252,20 @@ Dieser Server ist Teil des Swiss Open Data MCP-Portfolios und lässt sich kombin
 ## Tests
 
 ```bash
-# Unit-Tests (kein API-Schlüssel, kein Netzwerkzugriff)
-PYTHONPATH=src pytest tests/ -m "not live"
+# Unit-Tests — offline, alle CKAN-Antworten via respx gemockt
+PYTHONPATH=src pytest -m "not live"
 
-# Integrationstests (Live-API-Abfragen an envidat.ch)
-PYTHONPATH=src pytest tests/ -m "live"
+# Live-Integrationstests — echte HTTP-Aufrufe an envidat.ch
+PYTHONPATH=src pytest -m live
 
 # Linting
 ruff check src/
+ruff format --check src/
 ```
+
+CI führt die Offline-Suite bei jedem PR aus. Live-Tests laufen nur auf
+`main`-Pushes und manuellen `workflow_dispatch`-Triggern, damit der
+Build-Status nicht an der Upstream-Verfügbarkeit hängt.
 
 ---
 

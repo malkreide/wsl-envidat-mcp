@@ -251,15 +251,20 @@ This server is part of the Swiss Open Data MCP Portfolio and integrates well wit
 ## Testing
 
 ```bash
-# Unit tests (no API key required, no network access)
-PYTHONPATH=src pytest tests/ -m "not live"
+# Unit tests — offline, no network access, all CKAN responses mocked via respx
+PYTHONPATH=src pytest -m "not live"
 
-# Integration tests (live API calls to envidat.ch)
-PYTHONPATH=src pytest tests/ -m "live"
+# Live integration tests — actual HTTP calls to envidat.ch
+PYTHONPATH=src pytest -m live
 
 # Linting
 ruff check src/
+ruff format --check src/
 ```
+
+CI runs the offline suite on every PR. The live suite runs only on `main`
+pushes and manual `workflow_dispatch` triggers, so build status is not
+coupled to upstream availability.
 
 ---
 

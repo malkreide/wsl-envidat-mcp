@@ -3,8 +3,12 @@
 Testet alle 12 Tools, 2 Resources, Fehlerbehandlung, Validierung,
 Formatierungsoptionen und Edge Cases gegen die Live EnviDat API.
 
-Ausführen: python test_20_szenarien.py
-Hinweis: Erfordert aktive Internetverbindung.
+Ausführen: `pytest tests/test_20_szenarien.py -m live` oder
+direkt: `python tests/test_20_szenarien.py`.
+
+Hinweis: Erfordert aktive Internetverbindung. Alle Tests in diesem
+Modul tragen den `live`-Marker und werden von der Default-CI
+übersprungen.
 """
 
 import asyncio
@@ -12,6 +16,11 @@ import json
 import sys
 import traceback
 from pathlib import Path
+
+import pytest
+
+# Modul-weiter Marker — sämtliche Tests in dieser Datei sind Live-Tests.
+pytestmark = pytest.mark.live
 
 # src/ ins sys.path aufnehmen
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))

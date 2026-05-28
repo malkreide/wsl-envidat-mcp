@@ -26,7 +26,6 @@ from wsl_envidat_mcp.api_client import (  # noqa: E402
     ckan_package_search,
 )
 
-
 # ─── SEC-021: Egress-Allow-List ──────────────────────────────────────────────
 
 
