@@ -15,10 +15,13 @@ from __future__ import annotations
 import json
 import logging
 import sys
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional
 
+import structlog
 from mcp.server.fastmcp import FastMCP
+from mcp.types import LATEST_PROTOCOL_VERSION
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from wsl_envidat_mcp.api_client import (
@@ -34,14 +37,41 @@ from wsl_envidat_mcp.api_client import (
     handle_api_error,
 )
 
+# ─── Protocol-Version ─────────────────────────────────────────────────────────
+
+# MCP-Spec, gegen die dieser Server getestet wurde (ARCH-012). Bei einem
+# Upgrade des `mcp`-SDK auf eine neuere Spec-Version diese Konstante bumpen
+# und mit dem MCP Inspector validieren. LATEST_PROTOCOL_VERSION kommt aus
+# dem SDK und kann beim Upgrade abweichen — Drift wird sichtbar geloggt.
+SUPPORTED_MCP_PROTOCOL_VERSION = "2025-11-25"
+
+
 # ─── Logging ──────────────────────────────────────────────────────────────────
 
+# Strukturierte JSON-Logs an stderr (OBS-003, OBS-004). stdout bleibt für
+# das JSON-RPC-Protokoll reserviert. RFC-5424-Severities werden über die
+# Standard-Python-Levels abgebildet.
 logging.basicConfig(
+    format="%(message)s",
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     stream=sys.stderr,
 )
-logger = logging.getLogger("wsl_envidat_mcp")
+
+structlog.configure(
+    processors=[
+        structlog.stdlib.filter_by_level,
+        structlog.stdlib.add_log_level,
+        structlog.processors.TimeStamper(fmt="iso", utc=True),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.processors.JSONRenderer(),
+    ],
+    wrapper_class=structlog.stdlib.BoundLogger,
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    cache_logger_on_first_use=True,
+)
+
+logger = structlog.get_logger("wsl_envidat_mcp")
 
 # ─── MCP Server ───────────────────────────────────────────────────────────────
 
@@ -262,6 +292,11 @@ def _format_search_results(
     if response_format == ResponseFormat.JSON:
         return json.dumps(
             {
+                # CH-004: OGD-CH Lizenz/Source-Attribution in jedem Tool-Output
+                "source": "EnviDat / WSL (envidat.ch)",
+                "license": "various open licenses per dataset — see metadata",
+                "provenance": "live_api",
+                "retrieved_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                 "total_found": count,
                 "shown": shown,
                 "datasets": [
@@ -271,6 +306,7 @@ def _format_search_results(
                         "notes": (p.get("notes") or "")[:300],
                         "modified": p.get("metadata_modified", "")[:10],
                         "org": (p.get("organization") or {}).get("name"),
+                        "license": p.get("license_title"),
                         "tags": [t.get("name") for t in p.get("tags", [])],
                         "resources": len(p.get("resources", [])),
                         "url": f"{ENVIDAT_PORTAL}/dataset/{p.get('name')}",
@@ -1039,17 +1075,31 @@ def main() -> None:
     # öffentlichen WLAN bei MCP_TRANSPORT=streamable-http.
     host = os.environ.get("MCP_HOST", "127.0.0.1")
 
+    if LATEST_PROTOCOL_VERSION != SUPPORTED_MCP_PROTOCOL_VERSION:
+        logger.warning(
+            "mcp_protocol_version.drift",
+            sdk_latest=LATEST_PROTOCOL_VERSION,
+            tested_against=SUPPORTED_MCP_PROTOCOL_VERSION,
+            hint="Run the MCP Inspector and bump SUPPORTED_MCP_PROTOCOL_VERSION",
+        )
+
     if transport == "streamable-http":
         mcp.settings.host = host
         mcp.settings.port = port
         logger.info(
-            "WSL/EnviDat MCP Server startet (Transport: streamable-http, Host: %s, Port: %d)",
-            host,
-            port,
+            "server.start",
+            transport="streamable-http",
+            host=host,
+            port=port,
+            mcp_protocol_version=LATEST_PROTOCOL_VERSION,
         )
         mcp.run(transport="streamable-http")
     else:
-        logger.info("WSL/EnviDat MCP Server startet (Transport: stdio)")
+        logger.info(
+            "server.start",
+            transport="stdio",
+            mcp_protocol_version=LATEST_PROTOCOL_VERSION,
+        )
         mcp.run()
 
 

@@ -86,6 +86,12 @@ async def test_wsl_search_datasets_json(
     parsed = json.loads(out)
     assert parsed["total_found"] == 815
     assert len(parsed["datasets"]) == 2
+    # CH-004: OGD-Attribution-Felder in jedem JSON-Output
+    assert "EnviDat" in parsed["source"]
+    assert parsed["provenance"] == "live_api"
+    assert parsed["license"]
+    assert parsed["retrieved_at"]
+    assert parsed["datasets"][0]["license"] == "Creative Commons Attribution"
 
 
 @respx.mock
