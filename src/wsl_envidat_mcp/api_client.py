@@ -125,7 +125,7 @@ def _make_client() -> httpx.AsyncClient:
         base_url=ENVIDAT_API_BASE,
         timeout=REQUEST_TIMEOUT,
         headers={
-            "User-Agent": "wsl-envidat-mcp/0.1.0 (github.com/malkreide/wsl-envidat-mcp)",
+            "User-Agent": "wsl-envidat-mcp/0.2.0 (github.com/malkreide/wsl-envidat-mcp)",
             "Accept": "application/json",
         },
         follow_redirects=False,
