@@ -123,6 +123,30 @@ MCP_TRANSPORT=streamable-http MCP_HOST=0.0.0.0 PORT=8000 python -m wsl_envidat_m
 > Sticky Sessions aktivieren (Railway/Render-Einstellung oder
 > `sessionAffinity: ClientIP` auf Kubernetes Services).
 
+#### Container-Image (empfohlen für Cloud)
+
+Ein gehärtetes Multi-Stage-Image wird bei jedem `main`-Push und semver-Tag
+zur GitHub Container Registry publiziert. Läuft als non-root (`uid=1000`),
+ohne Build-Tools im Runtime-Layer, Multi-Arch (`linux/amd64` + `linux/arm64`).
+
+```bash
+docker run --rm -p 8000:8000 \
+  --read-only --tmpfs /tmp \
+  --cap-drop=ALL --security-opt=no-new-privileges \
+  ghcr.io/malkreide/wsl-envidat-mcp:latest
+```
+
+Kubernetes-Hardening (Auszug):
+
+```yaml
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities: { drop: ["ALL"] }
+```
+
 ---
 
 ## Verfügbare Tools

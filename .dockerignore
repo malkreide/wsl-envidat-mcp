@@ -1,0 +1,42 @@
+# Build artefacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+*.whl
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Test / lint caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# VCS / CI
+.git/
+.github/
+.gitignore
+.gitattributes
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Repo content irrelevant für Container
+audits/
+docs/
+tests/
+CHANGELOG.md
+CONTRIBUTING.md
+LICENSE
+README.de.md

@@ -122,6 +122,30 @@ MCP_TRANSPORT=streamable-http MCP_HOST=0.0.0.0 PORT=8000 python -m wsl_envidat_m
 > Run a single replica or enable sticky sessions (Railway/Render setting,
 > or `sessionAffinity: ClientIP` on Kubernetes Services).
 
+#### Container image (recommended for cloud)
+
+A hardened multi-stage image is published to GitHub Container Registry on
+every `main` push and semver tag. Runs as non-root (`uid=1000`), no build
+tools in the runtime layer, multi-arch (`linux/amd64` + `linux/arm64`).
+
+```bash
+docker run --rm -p 8000:8000 \
+  --read-only --tmpfs /tmp \
+  --cap-drop=ALL --security-opt=no-new-privileges \
+  ghcr.io/malkreide/wsl-envidat-mcp:latest
+```
+
+Kubernetes hardening (excerpt):
+
+```yaml
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities: { drop: ["ALL"] }
+```
+
 ---
 
 ## Available Tools
