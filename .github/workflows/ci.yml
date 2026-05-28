@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   test:
@@ -36,12 +37,11 @@ jobs:
       - name: Import-Test
         run: python -c "from wsl_envidat_mcp.server import mcp; print('Import OK')"
 
-      - name: Integrationstests (nur Python 3.11)
-        if: matrix.python-version == '3.11'
-        run: python tests/test_integration.py
+      - name: Unit-Tests (offline, gemockt via respx)
+        run: pytest -m "not live" -v
         env:
           PYTHONPATH: src
-        timeout-minutes: 5
+        timeout-minutes: 3
 
   lint:
     runs-on: ubuntu-latest
@@ -53,3 +53,24 @@ jobs:
       - run: pip install ruff
       - run: ruff check src/
       - run: ruff format --check src/
+
+  live-tests:
+    # Live-Calls zu envidat.ch. Läuft nur manuell oder bei push auf main —
+    # nicht auf PRs, damit der Build nicht an externer Verfügbarkeit hängt.
+    name: Live integration tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: uv installieren
+        run: pip install uv
+      - name: Abhängigkeiten installieren
+        run: uv pip install -e ".[dev]" --system
+      - name: Live-Tests gegen envidat.ch
+        run: pytest -m live -v
+        env:
+          PYTHONPATH: src
+        timeout-minutes: 10
