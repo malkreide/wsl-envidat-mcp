@@ -7,7 +7,7 @@ Domänen: Wald · Biodiversität · Naturgefahren · Schnee & Eis · Landschaft
 Datensätze: 1'000+ Forschungsdatensätze | Zeitreihen: bis 130 Jahre | Stationen: 6'000+
 API: CKAN-basiert, kein API-Schlüssel erforderlich
 
-Enthält 12 Tools und 2 Resources.
+Enthält 10 Tools und 2 Resources (seit v0.2.0; vorher 12 Tools).
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ import structlog
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
 from mcp.types import LATEST_PROTOCOL_VERSION
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from wsl_envidat_mcp.api_client import (
     DOMAIN_KEYWORDS,
@@ -81,10 +81,11 @@ mcp = FastMCP(
     instructions=(
         "Dieser Server gibt Zugriff auf Umweltforschungs- und Monitoringdaten der WSL "
         "(Eidg. Forschungsanstalt für Wald, Schnee und Landschaft) via EnviDat. "
-        "Verwende wsl_search_datasets für freie Suche, wsl_search_by_domain für "
-        "thematische Suche (Wald, Biodiversität, Naturgefahren, Schnee & Eis, Landschaft), "
-        "und wsl_get_dataset für vollständige Metadaten inkl. Download-URLs. "
-        "Kein API-Schlüssel erforderlich. Alle Daten sind öffentlich zugänglich."
+        "Verwende wsl_search für unifizierte Suche (kombiniert query, domain, "
+        "organization und bbox), und wsl_get_dataset für vollständige Metadaten "
+        "inkl. Download-URLs. Thematische Tools (wsl_get_avalanche_data, "
+        "wsl_get_forest_data, wsl_get_naturgefahren_data) liefern kuratierte "
+        "Subject-Matter-Queries. Kein API-Schlüssel erforderlich."
     ),
 )
 
@@ -106,41 +107,85 @@ class ResponseFormat(str, Enum):
     JSON = "json"
 
 
-class SearchDatasetsInput(BaseModel):
+class SearchInput(BaseModel):
+    """Unifiziertes Suchschema — kombiniert query, domain, organization und bbox.
+
+    Mindestens einer der vier Filter (query / domain / organization / bbox)
+    muss gesetzt sein. Sind mehrere gesetzt, werden sie kombiniert (AND).
+    """
+
     model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
 
-    query: str = Field(
-        ...,
+    query: Optional[str] = Field(
+        default=None,
         description=(
-            "Suchbegriff(e) für Datensätze. Solr-Syntax möglich. "
-            "Beispiele: 'snow avalanche', 'forest biodiversity Switzerland', "
-            "'bark beetle spruce', 'drought 2018'"
+            "Suchbegriff(e). Solr-Syntax möglich (Anführungszeichen für Phrasen). "
+            "Hinweis: 'OR' ist ein Stopwort — einzelne präzise Begriffe liefern "
+            "bessere Treffer. Beispiele: 'snow avalanche', 'bark beetle spruce'."
         ),
-        min_length=1,
         max_length=200,
     )
-    limit: Optional[int] = Field(
-        default=10,
-        description="Maximale Anzahl Ergebnisse (1–50)",
-        ge=1,
-        le=50,
-    )
-    offset: Optional[int] = Field(
-        default=0,
-        description="Offset für Paginierung",
-        ge=0,
+    domain: Optional[WSLDomain] = Field(
+        default=None,
+        description=(
+            "Kuratierte WSL-Forschungsdomäne: 'wald' (LFI/Sanasilva), "
+            "'biodiversitaet' (Arten/Habitate), 'naturgefahren' (Lawinen/"
+            "Rutschungen), 'schnee_eis' (Gletscher/Permafrost/SLF), "
+            "'landschaft' (Landnutzung/Trockenheit). Nutzt domain-optimierte "
+            "Solr-Queries — präziser als query mit dem Domain-Namen."
+        ),
     )
     organization: Optional[str] = Field(
         default=None,
         description=(
-            "Filter nach WSL-Forschungseinheit (Slug). "
-            "Beispiele: 'wsl', 'slf' (Schnee- und Lawinenforschung)"
+            "Filter nach WSL-Forschungseinheit (Slug). Beispiele: 'wsl', "
+            "'slf' (Schnee- und Lawinenforschung)."
         ),
+        max_length=100,
+    )
+    bbox: Optional[list[float]] = Field(
+        default=None,
+        description=(
+            "Geografischer Begrenzungsrahmen als [min_lon, min_lat, max_lon, "
+            "max_lat] in Dezimalgrad. Schweiz gesamt: [5.95, 45.8, 10.5, 47.8]. "
+            "Kanton Zürich: [8.35, 47.15, 8.98, 47.72]."
+        ),
+        min_length=4,
+        max_length=4,
+    )
+    limit: int = Field(
+        default=10,
+        description="Maximale Anzahl Ergebnisse (1–50).",
+        ge=1,
+        le=50,
+    )
+    offset: int = Field(
+        default=0,
+        description="Offset für Paginierung.",
+        ge=0,
     )
     response_format: ResponseFormat = Field(
         default=ResponseFormat.MARKDOWN,
-        description="Ausgabeformat: 'markdown' (lesbar) oder 'json' (maschinenlesbar)",
+        description="Ausgabeformat: 'markdown' (lesbar) oder 'json' (maschinenlesbar).",
     )
+
+    @model_validator(mode="after")
+    def _validate_filters(self) -> SearchInput:
+        if not any([self.query, self.domain, self.organization, self.bbox]):
+            raise ValueError(
+                "Mindestens einer von query/domain/organization/bbox muss gesetzt sein."
+            )
+        if self.bbox is not None:
+            min_lon, min_lat, max_lon, max_lat = self.bbox
+            if not -180 <= min_lon <= 180 or not -180 <= max_lon <= 180:
+                raise ValueError("Longitude muss im Bereich [-180, 180] liegen.")
+            if not -90 <= min_lat <= 90 or not -90 <= max_lat <= 90:
+                raise ValueError("Latitude muss im Bereich [-90, 90] liegen.")
+            if max_lon <= min_lon:
+                raise ValueError("bbox: max_lon muss grösser als min_lon sein.")
+            if max_lat <= min_lat:
+                raise ValueError("bbox: max_lat muss grösser als min_lat sein.")
+        return self
 
 
 class GetDatasetInput(BaseModel):
@@ -162,29 +207,6 @@ class GetDatasetInput(BaseModel):
     )
 
 
-class SearchByDomainInput(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
-
-    domain: WSLDomain = Field(
-        ...,
-        description=(
-            "WSL-Forschungsdomäne: "
-            "'wald' (Forstinventar, Waldschäden, Borkenkäfer), "
-            "'biodiversitaet' (Arten, Habitate, Flechten, Pilze), "
-            "'naturgefahren' (Lawinen, Rutschungen, Murgänge, Überschwemmungen), "
-            "'schnee_eis' (Schneedecke, Gletscher, Permafrost, SLF-Daten), "
-            "'landschaft' (Landnutzung, Trockenheit, Naherholung, Fernerkundung)"
-        ),
-    )
-    limit: Optional[int] = Field(
-        default=10,
-        description="Maximale Anzahl Ergebnisse (1-30)",
-        ge=1,
-        le=30,
-    )
-    response_format: ResponseFormat = Field(default=ResponseFormat.MARKDOWN)
-
-
 class GetOrganizationInput(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
 
@@ -200,54 +222,6 @@ class GetOrganizationInput(BaseModel):
         default=True,
         description="Datensätze der Organisation mitausgeben",
     )
-
-
-class SearchByLocationInput(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
-
-    min_lon: float = Field(
-        ...,
-        description="West-Longitude (Dezimalgrad), z.B. 5.95",
-        ge=-180,
-        le=180,
-    )
-    min_lat: float = Field(
-        ...,
-        description="Sued-Latitude (Dezimalgrad), z.B. 45.8",
-        ge=-90,
-        le=90,
-    )
-    max_lon: float = Field(
-        ...,
-        description="Ost-Longitude (Dezimalgrad), z.B. 10.5",
-        ge=-180,
-        le=180,
-    )
-    max_lat: float = Field(
-        ...,
-        description="Nord-Latitude (Dezimalgrad), z.B. 47.8",
-        ge=-90,
-        le=90,
-    )
-    query: Optional[str] = Field(
-        default=None,
-        description="Optionaler zusätzlicher Suchbegriff zur Einschränkung",
-    )
-    limit: Optional[int] = Field(default=10, ge=1, le=30)
-
-    @field_validator("max_lon")
-    @classmethod
-    def validate_lon_range(cls, v: float, info: Any) -> float:
-        if "min_lon" in (info.data or {}) and v <= info.data["min_lon"]:
-            raise ValueError("max_lon muss grösser als min_lon sein")
-        return v
-
-    @field_validator("max_lat")
-    @classmethod
-    def validate_lat_range(cls, v: float, info: Any) -> float:
-        if "min_lat" in (info.data or {}) and v <= info.data["min_lat"]:
-            raise ValueError("max_lat muss grösser als min_lat sein")
-        return v
 
 
 class ListTagsInput(BaseModel):
@@ -360,69 +334,110 @@ def _format_search_results(
     return "\n".join(lines)
 
 
-# ─── Tool 1: Datensätze suchen ────────────────────────────────────────────────
+# ─── Tool 1: Unifizierte Suche ────────────────────────────────────────────────
 
 
 @mcp.tool(
-    name="wsl_search_datasets",
+    name="wsl_search",
     description=(
-        "Durchsucht den EnviDat-Katalog der WSL (Eidg. Forschungsanstalt "
-        "für Wald, Schnee und Landschaft) nach Umweltforschungs-Datensätzen.\n\n"
+        "Unifizierte Suche im EnviDat-Katalog der WSL (Eidg. Forschungsanstalt "
+        "für Wald, Schnee und Landschaft). Kombiniert frei wählbar Stichwort, "
+        "kuratierte Forschungsdomäne, Organisation und Bounding-Box.\n\n"
         "<use_case>Schweizer Umweltforschung, Schulhaus-Umgebungsanalysen, "
-        "Klimafolgen-Recherche, kantonale Umweltberichte, Schnee-/Lawinen-/"
-        "Walddaten, Biodiversität, Naturgefahren.</use_case>\n\n"
-        "<important_notes>Solr-Syntax möglich, aber 'OR' ist Stopwort — "
-        "einzelne präzise Begriffe liefern bessere Ergebnisse. Bei leerem "
-        "Resultat liefert das Tool verwandte Tags als Vorschlag.</important_notes>\n\n"
-        "<example>query='snow avalanche' → SLF-Lawinenforschungsdatensätze. "
-        "query='bark beetle', organization='wsl' → Borkenkäfer-Monitoring.</example>"
+        "Klimafolgen-Recherche, kantonale Umweltberichte, Lawinendaten, "
+        "Waldzustand, Biodiversität, Naturgefahren.</use_case>\n\n"
+        "<important_notes>Mindestens einer der Filter (query/domain/"
+        "organization/bbox) muss gesetzt sein. Solr-Syntax ist möglich, "
+        "'OR' ist aber Stopwort. Bei leerem Resultat liefert das Tool "
+        "verwandte Tags als Vorschlag.</important_notes>\n\n"
+        "<example>query='snow avalanche' → SLF-Lawinendaten. "
+        "domain='wald' → kuratierte LFI-/Sanasilva-Suche. "
+        "bbox=[8.35,47.15,8.98,47.72] → Kanton Zürich. "
+        "query='forest', organization='wsl' → WSL-Walddatensätze.</example>"
     ),
     annotations={
-        "title": "EnviDat Datensätze suchen",
+        "title": "EnviDat Suche",
         "readOnlyHint": True,
         "destructiveHint": False,
         "idempotentHint": True,
         "openWorldHint": True,
     },
 )
-async def wsl_search_datasets(params: SearchDatasetsInput) -> str:
-    """Durchsucht den EnviDat-Katalog der WSL nach Umweltforschungsdatensätzen.
+async def wsl_search(params: SearchInput) -> str:
+    """Unifizierte Suche im EnviDat-Katalog.
 
-    Zugriff auf 1'000+ Datensätze aus 5 WSL-Forschungsdomänen: Wald, Biodiversität,
-    Naturgefahren, Schnee & Eis und Landschaft. Zeitreihen bis 130 Jahre.
-    Solr-Syntax möglich (AND, OR, Anführungszeichen für Phrasen).
+    Ersetzt seit v0.2.0 die drei separaten Such-Tools `wsl_search_datasets`,
+    `wsl_search_by_domain` und `wsl_search_by_location` (ARCH-006).
 
     Args:
-        params (SearchDatasetsInput): Suchparameter mit:
-            - query (str): Suchbegriff(e)
-            - limit (int): Anzahl Ergebnisse (Standard: 10)
-            - offset (int): Offset für Paginierung
-            - organization (str): Filter nach WSL-Forschungseinheit
-            - response_format: 'markdown' oder 'json'
+        params (SearchInput): Filter — mindestens einer von query / domain /
+            organization / bbox muss gesetzt sein. Plus limit, offset und
+            response_format.
 
     Returns:
-        str: Liste gefundener Datensätze mit Titel, Organisation, Tags und URL
+        str: Markdown oder JSON mit gefundenen Datensätzen, inkl. Tag-
+            Suggestions bei leerem Resultat.
     """
     try:
+        # Effektive Query: explizite query > domain-Keyword > Wildcard
+        if params.query:
+            query = params.query
+        elif params.domain:
+            query = build_domain_query(params.domain.value)
+        else:
+            query = "*:*"
+
         fq = f"organization:{params.organization}" if params.organization else ""
+        extras: dict[str, Any] | None = None
+        if params.bbox is not None:
+            extras = {"ext_bbox": ",".join(str(c) for c in params.bbox)}
+
         result = await ckan_package_search(
-            query=params.query,
+            query=query,
             fq=fq,
             rows=params.limit,
             start=params.offset,
+            extras=extras,
         )
-        # ARCH-003: Bei leerem Resultat best-effort Tag-Suggestion mitliefern.
+
+        # ARCH-003: Bei leerem Resultat best-effort Tag-Suggestion liefern.
         suggestions: list[str] | None = None
-        if not result.get("results"):
-            suggestions = await _suggest_tags(params.query)
+        if not result.get("results") and (params.query or params.domain):
+            suggestions = await _suggest_tags(
+                params.query or (params.domain.value if params.domain else None)
+            )
+
+        title = _search_title(params)
         return _format_search_results(
             result,
             params.response_format,
-            title=f"Suchergebnisse für «{params.query}»",
+            title=title,
             suggestions=suggestions,
         )
     except Exception as e:
-        raise ToolError(handle_api_error(e, "wsl_search_datasets")) from e
+        raise ToolError(handle_api_error(e, "wsl_search")) from e
+
+
+def _search_title(params: SearchInput) -> str:
+    """Baut einen lesbaren Markdown-Titel für die Suche."""
+    parts: list[str] = []
+    if params.query:
+        parts.append(f"«{params.query}»")
+    if params.domain:
+        label = {
+            "wald": "🌲 Wald",
+            "biodiversitaet": "🦋 Biodiversität",
+            "naturgefahren": "⛰️ Naturgefahren",
+            "schnee_eis": "❄️ Schnee & Eis",
+            "landschaft": "🏞️ Landschaft",
+        }.get(params.domain.value, params.domain.value)
+        parts.append(f"Domäne {label}")
+    if params.organization:
+        parts.append(f"Organisation `{params.organization}`")
+    if params.bbox is not None:
+        b = params.bbox
+        parts.append(f"BBox [{b[0]:.2f},{b[1]:.2f} → {b[2]:.2f},{b[3]:.2f}]")
+    return "Suchergebnisse — " + ", ".join(parts) if parts else "EnviDat Suchergebnisse"
 
 
 # ─── Tool 2: Datensatz-Details ────────────────────────────────────────────────
@@ -435,7 +450,7 @@ async def wsl_search_datasets(params: SearchDatasetsInput) -> str:
         "EnviDat-Datensatzes zurück.\n\n"
         "<use_case>Detail-Ansicht eines konkreten Datensatzes mit DOI, "
         "Lizenz, Autoren, Download-Links und räumlicher Ausdehnung. "
-        "Folge-Schritt nach wsl_search_datasets.</use_case>\n\n"
+        "Folge-Schritt nach wsl_search.</use_case>\n\n"
         "<important_notes>id_or_slug ist entweder die UUID oder der URL-Slug "
         "aus dem Suchergebnis (Feld 'name'). Liefert auch nicht-öffentliche "
         "Resource-Metadaten wenn vorhanden.</important_notes>\n\n"
@@ -535,137 +550,6 @@ async def wsl_get_dataset(params: GetDatasetInput) -> str:
 
     except Exception as e:
         raise ToolError(handle_api_error(e, "wsl_get_dataset")) from e
-
-
-# ─── Tool 3: Suche nach Domäne ────────────────────────────────────────────────
-
-
-@mcp.tool(
-    name="wsl_search_by_domain",
-    description=(
-        "Sucht WSL/EnviDat-Datensätze in einer kuratierten Forschungsdomäne.\n\n"
-        "<use_case>Thematische Übersicht ohne explizite Stichwortsuche — "
-        "wenn der User nach 'Walddaten', 'Schneeforschung', 'Biodiversität' "
-        "fragt, statt nach einem konkreten Term.</use_case>\n\n"
-        "<important_notes>Domänen-Werte: wald (LFI/Sanasilva/Borkenkäfer), "
-        "biodiversitaet (Arten/Habitate), naturgefahren (Lawinen/Murgang/"
-        "Steinschlag), schnee_eis (Gletscher/Permafrost/SLF), landschaft "
-        "(Landnutzung/Trockenheit). Nutzt domain-optimierte Solr-Queries — "
-        "präziser als wsl_search_datasets mit dem Domain-Namen.</important_notes>\n\n"
-        "<example>domain='wald' → Landesforstinventar + Sanasilva. "
-        "domain='naturgefahren' → Lawinenunfälle + Rutschungen.</example>"
-    ),
-    annotations={
-        "title": "WSL-Domäne durchsuchen",
-        "readOnlyHint": True,
-        "destructiveHint": False,
-        "idempotentHint": True,
-        "openWorldHint": True,
-    },
-)
-async def wsl_search_by_domain(params: SearchByDomainInput) -> str:
-    """Sucht Datensätze in einer WSL-Forschungsdomäne mit kuratierten Suchbegriffen.
-
-    Jede Domäne nutzt optimierte Keyword-Kombinationen für präzise Ergebnisse:
-    - wald: Forstinventar (LFI), Sanasilva, Waldschäden, Borkenkäfer
-    - biodiversitaet: Arten, Habitatkarte CH, Flechten, Pilze, Insekten
-    - naturgefahren: Lawinenunfälle, Rutschungen, Murgänge, Steinschlag
-    - schnee_eis: Schneemessreihen, Gletscher, Permafrost, SLF-Daten
-    - landschaft: Landnutzung, Trockenheit, Naherholung, Fernerkundung
-
-    Args:
-        params (SearchByDomainInput): Mit:
-            - domain (WSLDomain): Forschungsdomäne
-            - limit (int): Anzahl Ergebnisse
-            - response_format: 'markdown' oder 'json'
-
-    Returns:
-        str: Datensätze der gewählten Domäne
-    """
-    try:
-        domain_query = build_domain_query(params.domain.value)
-        result = await ckan_package_search(
-            query=domain_query,
-            rows=params.limit,
-        )
-        domain_label = {
-            "wald": "🌲 Wald",
-            "biodiversitaet": "🦋 Biodiversität",
-            "naturgefahren": "⛰️ Naturgefahren",
-            "schnee_eis": "❄️ Schnee & Eis",
-            "landschaft": "🏞️ Landschaft",
-        }.get(params.domain.value, params.domain.value)
-
-        return _format_search_results(
-            result,
-            params.response_format,
-            title=f"Forschungsdomäne {domain_label}",
-        )
-    except Exception as e:
-        raise ToolError(handle_api_error(e, "wsl_search_by_domain")) from e
-
-
-# ─── Tool 4: Räumliche Suche ──────────────────────────────────────────────────
-
-
-@mcp.tool(
-    name="wsl_search_by_location",
-    description=(
-        "Sucht WSL/EnviDat-Datensätze in einem geografischen Begrenzungsrahmen.\n\n"
-        "<use_case>Standortspezifische Umweltanalysen: Schulareal-Umgebung, "
-        "Kanton-Reports, Alpenraum-Studien, Lake-Constance-Region.</use_case>\n\n"
-        "<important_notes>Bounding-Box als (min_lon, min_lat, max_lon, max_lat) "
-        "in Dezimalgrad. Schweiz gesamt: 5.95,45.8,10.5,47.8. Filterung ist "
-        "approximativ — einzelne Datensätze haben evtl. weitere Ausdehnung."
-        "</important_notes>\n\n"
-        "<example>Kanton Zürich: min_lon=8.35, min_lat=47.15, max_lon=8.98, "
-        "max_lat=47.72. Optional zusätzlich query='avalanche' zur Einengung."
-        "</example>"
-    ),
-    annotations={
-        "title": "Räumliche Datensatz-Suche",
-        "readOnlyHint": True,
-        "destructiveHint": False,
-        "idempotentHint": True,
-        "openWorldHint": True,
-    },
-)
-async def wsl_search_by_location(params: SearchByLocationInput) -> str:
-    """Sucht WSL/EnviDat-Datensätze in einem geografischen Begrenzungsrahmen (Bounding Box).
-
-    Besonders nützlich für:
-    - Standortspezifische Analysen (z.B. Zürich, Davos, Alpenraum)
-    - Schulareal-Umgebungsanalysen (Waldbestand, Biodiversität)
-    - Kantonale Umweltberichte
-
-    Schweiz gesamt: min_lon=5.95, min_lat=45.8, max_lon=10.5, max_lat=47.8
-    Kanton Zürich:  min_lon=8.35, min_lat=47.15, max_lon=8.98, max_lat=47.72
-
-    Args:
-        params (SearchByLocationInput): Bounding-Box-Koordinaten + optionaler Suchbegriff
-
-    Returns:
-        str: Datensätze im gewählten geografischen Bereich
-    """
-    try:
-        bbox = f"{params.min_lon},{params.min_lat},{params.max_lon},{params.max_lat}"
-        extras = {"ext_bbox": bbox}
-        result = await ckan_package_search(
-            query=params.query or "*:*",
-            rows=params.limit,
-            extras=extras,
-        )
-        location_str = (
-            f"BBox [{params.min_lon:.2f},{params.min_lat:.2f}"
-            f" -> {params.max_lon:.2f},{params.max_lat:.2f}]"
-        )
-        return _format_search_results(
-            result,
-            ResponseFormat.MARKDOWN,
-            title=f"Datensätze in {location_str}",
-        )
-    except Exception as e:
-        raise ToolError(handle_api_error(e, "wsl_search_by_location")) from e
 
 
 # ─── Tool 5: Organisationen auflisten ─────────────────────────────────────────
@@ -793,7 +677,7 @@ async def wsl_get_organization(params: GetOrganizationInput) -> str:
 async def wsl_list_tags(params: ListTagsInput) -> str:
     """Listet verfügbare Schlagwörter (Tags) im EnviDat-Katalog auf.
 
-    Nützlich um herauszufinden, welche Suchbegriffe in wsl_search_datasets
+    Nützlich um herauszufinden, welche Suchbegriffe in wsl_search
     präzise Ergebnisse liefern. Unterstützt Präfix-Suche.
 
     Args:

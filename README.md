@@ -2,7 +2,7 @@
 
 # wsl-envidat-mcp 🌲❄️⛰️
 
-![Version](https://img.shields.io/badge/version-0.1.0-blue)
+![Version](https://img.shields.io/badge/version-0.2.0-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-purple)](https://modelcontextprotocol.io/)
@@ -22,7 +22,7 @@ This server is in **Phase 1: Read-only Wrapper**.
 
 | Property | Status |
 |---|---|
-| Read tools | ✅ 12 tools, all `readOnlyHint: true` |
+| Read tools | ✅ 10 tools, all `readOnlyHint: true` |
 | Write tools | ❌ none (EnviDat is read-only public data) |
 | Semantic Layer | ⚠️ partial — three domain tools curate Solr queries |
 | OAuth / Auth Gateway | ❌ not required (Public Open Data, no API key) |
@@ -39,7 +39,7 @@ snow + hazard data into a "Lage-Übersicht"): tracked under `docs/`.
 
 The **WSL** (Eidgenössische Forschungsanstalt für Wald, Schnee und Landschaft / Swiss Federal Research Institute for Forest, Snow and Landscape) is one of Europe's leading environmental research institutes. Its open data platform **[EnviDat](https://www.envidat.ch)** provides access to 1,000+ research datasets, time series of up to 130 years, and data from 6,000+ monitoring stations.
 
-This MCP server exposes the EnviDat CKAN API as 12 tools and 2 resources, enabling AI assistants to search, filter and retrieve WSL research data by keyword, domain, or geographic bounding box — all without an API key.
+This MCP server exposes the EnviDat CKAN API as 10 tools and 2 resources, enabling AI assistants to search, filter and retrieve WSL research data by keyword, domain, or geographic bounding box — all without an API key.
 
 **Anchor demo query:** *"How was air quality and forest health around Schulhaus Leutschenbach in Zurich — and what does the WSL say about the current forest condition in the canton?"*
 
@@ -51,7 +51,7 @@ This MCP server exposes the EnviDat CKAN API as 12 tools and 2 resources, enabli
 
 ## Features
 
-- **12 tools** covering full-text search, domain-specific queries, spatial search, and curated thematic tools (avalanche, forest, natural hazards)
+- **10 tools** covering full-text search, domain-specific queries, spatial search, and curated thematic tools (avalanche, forest, natural hazards)
 - **2 MCP resources** for organizations and research domains
 - **5 research domains**: Forest · Biodiversity · Natural Hazards · Snow & Ice · Landscape
 - **815+ datasets**, time series since 1890, data from the SLF avalanche research institute
@@ -177,10 +177,8 @@ securityContext:
 
 | Tool | Description |
 |------|-------------|
-| `wsl_search_datasets` | Full-text search across all datasets (Solr syntax supported) |
+| `wsl_search` | Unified search — combine `query`, `domain`, `organization`, and `bbox` filters |
 | `wsl_get_dataset` | Full metadata, DOI, download URLs for a specific dataset |
-| `wsl_search_by_domain` | Thematic search by WSL research domain |
-| `wsl_search_by_location` | Spatial search via bounding box coordinates |
 | `wsl_list_organizations` | List all WSL research units on EnviDat |
 | `wsl_get_organization` | Details of a specific research unit incl. datasets |
 | `wsl_list_tags` | Browse available tags/keywords |
@@ -197,8 +195,8 @@ securityContext:
 | *"Fatal avalanche accidents in Valais since 2000?"* | `wsl_get_avalanche_data` |
 | *"Forest health data for canton Zurich?"* | `wsl_get_forest_data` |
 | *"Landslide risk datasets near Brienz?"* | `wsl_get_naturgefahren_data` |
-| *"Most recent WSL publications on biodiversity?"* | `wsl_search_by_domain` |
-| *"Which datasets cover the area around Lake Constance?"* | `wsl_search_by_location` |
+| *"Most recent WSL publications on biodiversity?"* | `wsl_search(domain="biodiversitaet")` |
+| *"Which datasets cover the area around Lake Constance?"* | `wsl_search(bbox=[9.0, 47.5, 9.7, 47.8])` |
 | *"How many datasets does SLF publish?"* | `wsl_get_organization` |
 
 ---
@@ -221,7 +219,7 @@ Valid domain values: `wald`, `biodiversitaet`, `naturgefahren`, `schnee_eis`, `l
 │   Claude / AI   │────▶│    WSL EnviDat MCP        │────▶│       envidat.ch          │
 │   (MCP Host)    │◀────│    (MCP Server)           │◀────│                          │
 └─────────────────┘     │                           │     │  CKAN API  (REST/JSON)   │
-                        │  12 Tools · 2 Resources   │     │  Solr full-text search   │
+                        │  10 Tools · 2 Resources   │     │  Solr full-text search   │
                         │  Stdio | Streamable HTTP  │     │  1,000+ research datasets│
                         │                           │     │  815+ open datasets      │
                         │  server.py                │     │  Time series since 1890  │
@@ -234,7 +232,7 @@ Valid domain values: `wald`, `biodiversitaet`, `naturgefahren`, `schnee_eis`, `l
 | Component | Metaphor | Function |
 |-----------|----------|----------|
 | `api_client.py` | Librarian | Handles all HTTP requests to EnviDat CKAN API |
-| `server.py` | Reception desk | Registers all 12 tools and 2 resources with FastMCP |
+| `server.py` | Reception desk | Registers all 10 tools and 2 resources with FastMCP |
 | Domain filters | Filing cabinet | Pre-configured keyword sets per research domain |
 | Bounding box search | Map overlay | Spatial filtering via lat/lon coordinates |
 
@@ -246,7 +244,7 @@ Valid domain values: `wald`, `biodiversitaet`, `naturgefahren`, `schnee_eis`, `l
 wsl-envidat-mcp/
 ├── src/wsl_envidat_mcp/
 │   ├── __init__.py         # Package
-│   ├── server.py           # MCP server — 12 tools, 2 resources
+│   ├── server.py           # MCP server — 10 tools, 2 resources
 │   └── api_client.py       # HTTP client for EnviDat CKAN API
 ├── tests/
 │   └── test_integration.py # 11 live API integration tests

@@ -1,4 +1,4 @@
-"""Unit-Tests für die 12 MCP-Tools mit gemocktem HTTP-Layer.
+"""Unit-Tests für die 10 MCP-Tools mit gemocktem HTTP-Layer.
 
 Alle Tests in dieser Datei laufen offline — keine Live-Calls zu envidat.ch.
 Default-CI führt diese Suite via `pytest -m "not live"` aus.
@@ -27,9 +27,7 @@ from wsl_envidat_mcp.server import (  # noqa: E402
     GetRecentDatasetsInput,
     ListTagsInput,
     ResponseFormat,
-    SearchByDomainInput,
-    SearchByLocationInput,
-    SearchDatasetsInput,
+    SearchInput,
     SimpleQueryInput,
     WSLDomain,
     get_domain_resource,
@@ -43,9 +41,7 @@ from wsl_envidat_mcp.server import (  # noqa: E402
     wsl_get_recent_datasets,
     wsl_list_organizations,
     wsl_list_tags,
-    wsl_search_by_domain,
-    wsl_search_by_location,
-    wsl_search_datasets,
+    wsl_search,
 )
 
 
@@ -53,36 +49,34 @@ def _ok(payload: Any) -> httpx.Response:
     return httpx.Response(200, json={"success": True, "result": payload})
 
 
-# ─── Tool 1: wsl_search_datasets ─────────────────────────────────────────────
+# ─── Tool 1: wsl_search (unified) ────────────────────────────────────────────
 
 
 @respx.mock
-async def test_wsl_search_datasets_markdown(
+async def test_wsl_search_query_markdown(
     sample_search_response: dict[str, Any],
 ) -> None:
     respx.get(f"{ENVIDAT_API_BASE}/package_search").mock(
         return_value=httpx.Response(200, json=sample_search_response)
     )
 
-    out = await wsl_search_datasets(
-        SearchDatasetsInput(query="snow avalanche", limit=5)
-    )
+    out = await wsl_search(SearchInput(query="snow avalanche", limit=5))
 
-    assert "Suchergebnisse für «snow avalanche»" in out
+    assert "«snow avalanche»" in out
     assert "Fatal avalanche accidents" in out
     assert "815 Datensätze gefunden" in out
 
 
 @respx.mock
-async def test_wsl_search_datasets_json(
+async def test_wsl_search_json_includes_ogd_attribution(
     sample_search_response: dict[str, Any],
 ) -> None:
     respx.get(f"{ENVIDAT_API_BASE}/package_search").mock(
         return_value=httpx.Response(200, json=sample_search_response)
     )
 
-    out = await wsl_search_datasets(
-        SearchDatasetsInput(query="forest", response_format=ResponseFormat.JSON)
+    out = await wsl_search(
+        SearchInput(query="forest", response_format=ResponseFormat.JSON)
     )
     parsed = json.loads(out)
     assert parsed["total_found"] == 815
@@ -96,7 +90,7 @@ async def test_wsl_search_datasets_json(
 
 
 @respx.mock
-async def test_wsl_search_datasets_empty_returns_tag_suggestions() -> None:
+async def test_wsl_search_empty_returns_tag_suggestions() -> None:
     """ARCH-003: leeres Resultat liefert verwandte Tags als Hinweis."""
     respx.get(f"{ENVIDAT_API_BASE}/package_search").mock(
         return_value=httpx.Response(
@@ -111,21 +105,84 @@ async def test_wsl_search_datasets_empty_returns_tag_suggestions() -> None:
         )
     )
 
-    out = await wsl_search_datasets(SearchDatasetsInput(query="xyzzy"))
+    out = await wsl_search(SearchInput(query="xyzzy"))
     assert "Keine Datensätze gefunden" in out
     assert "verwandte Tags" in out
     assert "xyzzy-test" in out
 
 
 @respx.mock
-async def test_wsl_search_datasets_raises_toolerror_on_timeout() -> None:
-    """OBS-001: Fehler werden als ToolError raised, nicht als Plain-String returned."""
+async def test_wsl_search_raises_toolerror_on_timeout() -> None:
+    """OBS-001: Fehler werden als ToolError raised."""
     respx.get(f"{ENVIDAT_API_BASE}/package_search").mock(
         side_effect=httpx.TimeoutException("timeout")
     )
 
     with pytest.raises(ToolError, match="Zeitüberschreitung"):
-        await wsl_search_datasets(SearchDatasetsInput(query="snow"))
+        await wsl_search(SearchInput(query="snow"))
+
+
+def test_search_input_requires_at_least_one_filter() -> None:
+    """ARCH-006: wsl_search verlangt mindestens einen Filter."""
+    with pytest.raises(ValueError, match="query/domain/organization/bbox"):
+        SearchInput()
+
+
+@respx.mock
+async def test_wsl_search_by_domain(
+    sample_search_response: dict[str, Any],
+) -> None:
+    """Domain-only Suche nutzt den kuratierten Domain-Keyword."""
+    route = respx.get(f"{ENVIDAT_API_BASE}/package_search").mock(
+        return_value=httpx.Response(200, json=sample_search_response)
+    )
+    out = await wsl_search(SearchInput(domain=WSLDomain.WALD))
+    assert "Domäne" in out
+    # Der erste Domain-Keyword für 'wald' ist 'forest' (build_domain_query)
+    sent_url = str(route.calls[0].request.url)
+    assert "q=forest" in sent_url
+
+
+@respx.mock
+async def test_wsl_search_bbox_passes_ext_bbox_param(
+    sample_search_response: dict[str, Any],
+) -> None:
+    """bbox-Filter wird als ext_bbox-Query-Param weitergereicht."""
+    route = respx.get(f"{ENVIDAT_API_BASE}/package_search").mock(
+        return_value=httpx.Response(200, json=sample_search_response)
+    )
+    out = await wsl_search(SearchInput(bbox=[8.35, 47.15, 8.98, 47.72]))
+    sent_url = str(route.calls[0].request.url)
+    assert "ext_bbox=8.35%2C47.15%2C8.98%2C47.72" in sent_url
+    assert "BBox" in out
+
+
+def test_search_input_validates_bbox_order() -> None:
+    """ARCH-006: max_lon > min_lon, max_lat > min_lat enforced."""
+    with pytest.raises(ValueError, match="max_lon"):
+        SearchInput(bbox=[10.0, 46.0, 5.0, 47.0])
+    with pytest.raises(ValueError, match="max_lat"):
+        SearchInput(bbox=[5.0, 47.0, 10.0, 46.0])
+
+
+def test_search_input_rejects_invalid_bbox_size() -> None:
+    """bbox muss exakt 4 Werte haben."""
+    with pytest.raises(ValueError):
+        SearchInput(bbox=[5.0, 46.0, 10.0])
+
+
+@respx.mock
+async def test_wsl_search_combines_query_and_organization(
+    sample_search_response: dict[str, Any],
+) -> None:
+    """query + organization werden als q + fq kombiniert."""
+    route = respx.get(f"{ENVIDAT_API_BASE}/package_search").mock(
+        return_value=httpx.Response(200, json=sample_search_response)
+    )
+    await wsl_search(SearchInput(query="bark beetle", organization="wsl"))
+    sent_url = str(route.calls[0].request.url)
+    assert "q=bark+beetle" in sent_url or "q=bark%20beetle" in sent_url
+    assert "fq=organization%3Awsl" in sent_url
 
 
 # ─── Tool 2: wsl_get_dataset ─────────────────────────────────────────────────
@@ -155,22 +212,6 @@ async def test_wsl_get_dataset_404_raises_toolerror() -> None:
         await wsl_get_dataset(GetDatasetInput(id_or_slug="missing-slug"))
 
 
-# ─── Tool 3: wsl_search_by_domain ────────────────────────────────────────────
-
-
-@respx.mock
-async def test_wsl_search_by_domain_wald(
-    sample_search_response: dict[str, Any],
-) -> None:
-    respx.get(f"{ENVIDAT_API_BASE}/package_search").mock(
-        return_value=httpx.Response(200, json=sample_search_response)
-    )
-
-    out = await wsl_search_by_domain(SearchByDomainInput(domain=WSLDomain.WALD))
-    assert "Forschungsdomäne" in out
-    assert "Wald" in out
-
-
 @pytest.mark.parametrize(
     "domain",
     [
@@ -182,41 +223,15 @@ async def test_wsl_search_by_domain_wald(
     ],
 )
 @respx.mock
-async def test_wsl_search_by_domain_all_domains(
+async def test_wsl_search_all_domains_smoke(
     domain: WSLDomain, sample_search_response: dict[str, Any]
 ) -> None:
+    """Smoke-Test: alle fünf Domain-Werte sind akzeptiert."""
     respx.get(f"{ENVIDAT_API_BASE}/package_search").mock(
         return_value=httpx.Response(200, json=sample_search_response)
     )
-    out = await wsl_search_by_domain(SearchByDomainInput(domain=domain))
-    assert "Forschungsdomäne" in out
-
-
-# ─── Tool 4: wsl_search_by_location ──────────────────────────────────────────
-
-
-@respx.mock
-async def test_wsl_search_by_location_bbox_zh(
-    sample_search_response: dict[str, Any],
-) -> None:
-    route = respx.get(f"{ENVIDAT_API_BASE}/package_search").mock(
-        return_value=httpx.Response(200, json=sample_search_response)
-    )
-
-    out = await wsl_search_by_location(
-        SearchByLocationInput(
-            min_lon=8.35, min_lat=47.15, max_lon=8.98, max_lat=47.72
-        )
-    )
-    assert "BBox" in out
-    # ext_bbox-Parameter muss als Query-String mitgegeben werden
-    sent_url = str(route.calls[0].request.url)
-    assert "ext_bbox=8.35%2C47.15%2C8.98%2C47.72" in sent_url
-
-
-def test_wsl_search_by_location_validates_bbox() -> None:
-    with pytest.raises(ValueError, match="max_lon"):
-        SearchByLocationInput(min_lon=10.0, min_lat=46.0, max_lon=5.0, max_lat=47.0)
+    out = await wsl_search(SearchInput(domain=domain))
+    assert "Domäne" in out
 
 
 # ─── Tool 5: wsl_list_organizations ──────────────────────────────────────────
@@ -420,14 +435,9 @@ async def test_resource_domain(
 
 def test_search_input_rejects_extra_fields() -> None:
     with pytest.raises(ValueError, match="forbidden|Extra inputs"):
-        SearchDatasetsInput(query="snow", malicious_field="boom")  # type: ignore[call-arg]
-
-
-def test_search_input_rejects_empty_query() -> None:
-    with pytest.raises(ValueError):
-        SearchDatasetsInput(query="")
+        SearchInput(query="snow", malicious_field="boom")  # type: ignore[call-arg]
 
 
 def test_search_input_enforces_limit_bounds() -> None:
     with pytest.raises(ValueError):
-        SearchDatasetsInput(query="ok", limit=999)
+        SearchInput(query="ok", limit=999)

@@ -42,19 +42,15 @@ from wsl_envidat_mcp.api_client import (
 from wsl_envidat_mcp.server import (
     _format_search_results,
     ResponseFormat,
-    SearchDatasetsInput,
+    SearchInput,
     GetDatasetInput,
-    SearchByDomainInput,
-    SearchByLocationInput,
     ListTagsInput,
     GetRecentDatasetsInput,
     SimpleQueryInput,
     GetOrganizationInput,
     WSLDomain,
-    wsl_search_datasets,
+    wsl_search,
     wsl_get_dataset,
-    wsl_search_by_domain,
-    wsl_search_by_location,
     wsl_list_organizations,
     wsl_get_organization,
     wsl_list_tags,
@@ -70,17 +66,17 @@ from wsl_envidat_mcp.server import (
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  SZENARIO 1: Volltextsuche mit JSON-Ausgabe
-#  Prüft: wsl_search_datasets + response_format=json
+#  Prüft: wsl_search + response_format=json
 # ═══════════════════════════════════════════════════════════════════════════════
 
 async def test_01_search_json_format() -> None:
     """Szenario 1: Volltextsuche gibt valides JSON zurück."""
-    params = SearchDatasetsInput(
+    params = SearchInput(
         query="glacier monitoring",
         limit=3,
         response_format=ResponseFormat.JSON,
     )
-    result = await wsl_search_datasets(params)
+    result = await wsl_search(params)
     data = json.loads(result)
     assert "total_found" in data, "JSON-Antwort fehlt 'total_found'"
     assert "datasets" in data, "JSON-Antwort fehlt 'datasets'"
@@ -93,7 +89,7 @@ async def test_01_search_json_format() -> None:
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  SZENARIO 2: Suche mit Organisations-Filter
-#  Prüft: wsl_search_datasets + organization-Filter
+#  Prüft: wsl_search + organization-Filter
 # ═══════════════════════════════════════════════════════════════════════════════
 
 async def test_02_search_with_org_filter() -> None:
@@ -103,12 +99,12 @@ async def test_02_search_with_org_filter() -> None:
     assert len(orgs) > 0
     first_org = orgs[0]["name"]
 
-    params = SearchDatasetsInput(
+    params = SearchInput(
         query="*:*",
         limit=5,
         organization=first_org,
     )
-    result = await wsl_search_datasets(params)
+    result = await wsl_search(params)
     assert "Datensätze gefunden" in result or "total_found" in result
     print(f"  ✓ Org-Filter '{first_org}': Ergebnisse erhalten")
 
@@ -154,31 +150,31 @@ async def test_04_dataset_details_json() -> None:
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  SZENARIO 5: Domänensuche – alle 5 Domänen nacheinander
-#  Prüft: wsl_search_by_domain für jede WSLDomain
+#  Prüft: wsl_search für jede WSLDomain
 # ═══════════════════════════════════════════════════════════════════════════════
 
 async def test_05_all_domains() -> None:
     """Szenario 5: Alle 5 Forschungsdomänen liefern Ergebnisse."""
     for domain in WSLDomain:
-        params = SearchByDomainInput(domain=domain, limit=2)
-        result = await wsl_search_by_domain(params)
+        params = SearchInput(domain=domain, limit=2)
+        result = await wsl_search(params)
         assert "Datensätze gefunden" in result, f"Domäne '{domain.value}' liefert keine Treffer"
     print(f"  ✓ Alle 5 Domänen liefern Ergebnisse")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  SZENARIO 6: Domänensuche mit JSON-Format
-#  Prüft: wsl_search_by_domain + JSON-Ausgabe
+#  Prüft: wsl_search + JSON-Ausgabe
 # ═══════════════════════════════════════════════════════════════════════════════
 
 async def test_06_domain_json() -> None:
     """Szenario 6: Domänensuche in JSON-Format."""
-    params = SearchByDomainInput(
+    params = SearchInput(
         domain=WSLDomain.SCHNEE_EIS,
         limit=5,
         response_format=ResponseFormat.JSON,
     )
-    result = await wsl_search_by_domain(params)
+    result = await wsl_search(params)
     data = json.loads(result)
     assert data["total_found"] > 0
     assert len(data["datasets"]) <= 5
@@ -187,17 +183,13 @@ async def test_06_domain_json() -> None:
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  SZENARIO 7: Räumliche Suche – Davos-Region
-#  Prüft: wsl_search_by_location mit BBox um Davos
+#  Prüft: wsl_search mit BBox um Davos
 # ═══════════════════════════════════════════════════════════════════════════════
 
 async def test_07_spatial_search_davos() -> None:
     """Szenario 7: Räumliche Suche in der Region Davos."""
-    params = SearchByLocationInput(
-        min_lon=9.7, min_lat=46.7,
-        max_lon=10.0, max_lat=46.9,
-        limit=5,
-    )
-    result = await wsl_search_by_location(params)
+    params = SearchInput(bbox=[9.7, 46.7, 10.0, 46.9], limit=5)
+    result = await wsl_search(params)
     # Bei 0 Treffern: "Keine Datensätze gefunden", sonst BBox im Titel
     assert "BBox" in result or "Keine Datensätze" in result, "Unerwartete Antwort"
     print(f"  ✓ Raeumliche Suche Davos: Antwort erhalten ({len(result)} Zeichen)")
@@ -205,18 +197,14 @@ async def test_07_spatial_search_davos() -> None:
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  SZENARIO 8: Räumliche Suche mit Suchbegriff
-#  Prüft: wsl_search_by_location + zusätzlicher query-Parameter
+#  Prüft: wsl_search + zusätzlicher query-Parameter
 # ═══════════════════════════════════════════════════════════════════════════════
 
 async def test_08_spatial_search_with_query() -> None:
     """Szenario 8: Räumliche Suche kombiniert mit Suchbegriff."""
-    params = SearchByLocationInput(
-        min_lon=5.95, min_lat=45.8,
-        max_lon=10.5, max_lat=47.8,
-        query="permafrost",
-        limit=5,
-    )
-    result = await wsl_search_by_location(params)
+    params = SearchInput(bbox=[5.95, 45.8, 10.5, 47.8], query="permafrost",
+        limit=5)
+    result = await wsl_search(params)
     assert "BBox" in result or "Keine Datensätze" in result, "Unerwartete Antwort"
     print(f"  ✓ Raeumliche Suche CH + 'permafrost': OK")
 
@@ -381,17 +369,27 @@ async def test_18_resource_domain() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 async def test_19_error_invalid_dataset() -> None:
-    """Szenario 19: Fehlerbehandlung bei ungültigem Datensatz-Slug."""
+    """Szenario 19: Fehlerbehandlung bei ungültigem Datensatz-Slug.
+
+    Seit v0.2.0 (OBS-001) wird der Fehler als ToolError raised, sodass
+    der MCP-Client den Fehler eindeutig als isError=True erkennt.
+    """
+    from mcp.server.fastmcp.exceptions import ToolError
+
     params = GetDatasetInput(id_or_slug="dieser-datensatz-existiert-sicher-nicht-xyz-999")
-    result = await wsl_get_dataset(params)
-    # Sollte eine Fehlermeldung zurückgeben, nicht crashen
-    assert "Fehler" in result or "error" in result.lower() or "nicht gefunden" in result.lower()
-    print(f"  ✓ Fehler bei ungültigem Slug: '{result[:80]}...'")
+    try:
+        await wsl_get_dataset(params)
+    except ToolError as e:
+        msg = str(e).lower()
+        assert "nicht gefunden" in msg or "404" in msg or "fehler" in msg
+        print(f"  ✓ ToolError bei ungültigem Slug: '{str(e)[:80]}...'")
+        return
+    raise AssertionError("Expected ToolError, got success")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  SZENARIO 20: Pydantic-Validierung – BBox-Validierung
-#  Prüft: SearchByLocationInput lehnt ungültige Koordinaten ab
+#  Prüft: SearchInput lehnt ungültige Koordinaten/Filter ab
 # ═══════════════════════════════════════════════════════════════════════════════
 
 async def test_20_pydantic_validation() -> None:
@@ -400,25 +398,25 @@ async def test_20_pydantic_validation() -> None:
 
     # Test 1: max_lon <= min_lon
     try:
-        SearchByLocationInput(min_lon=10.0, min_lat=46.0, max_lon=8.0, max_lat=47.0)
+        SearchInput(bbox=[10.0, 46.0, 8.0, 47.0])
     except Exception:
         errors_caught += 1
 
     # Test 2: max_lat <= min_lat
     try:
-        SearchByLocationInput(min_lon=8.0, min_lat=47.0, max_lon=10.0, max_lat=46.0)
+        SearchInput(bbox=[8.0, 47.0, 10.0, 46.0])
     except Exception:
         errors_caught += 1
 
-    # Test 3: Leerer Suchbegriff bei SearchDatasetsInput
+    # Test 3: Kein Filter gesetzt (ARCH-006: mindestens ein Filter Pflicht)
     try:
-        SearchDatasetsInput(query="")
+        SearchInput()
     except Exception:
         errors_caught += 1
 
     # Test 4: Limit ausserhalb des Bereichs
     try:
-        SearchDatasetsInput(query="test", limit=100)
+        SearchInput(query="test", limit=100)
     except Exception:
         errors_caught += 1
 
