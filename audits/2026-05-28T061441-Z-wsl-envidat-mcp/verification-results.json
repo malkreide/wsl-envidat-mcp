@@ -1,0 +1,380 @@
+{
+  "audit_meta": {
+    "server_name": "wsl-envidat-mcp",
+    "run_id": "2026-05-28T061441-Z-wsl-envidat-mcp",
+    "skill_version": "1.0.0",
+    "policy": "fail-or-partial",
+    "previous_run": "2026-05-27T120439-Z-wsl-envidat-mcp",
+    "notes": "Re-audit after remediation batches 1-5 (PRs #2, #3, #4, #5, #6, #7)."
+  },
+  "results": {
+    "ARCH-001": {
+      "status": "pass",
+      "category": "ARCH",
+      "severity": "medium",
+      "evidence": [
+        "Konsistente snake_case-Konvention mit wsl_-Prefix für alle 10 Tools",
+        "Keine Sonderzeichen, Spaces oder Klammern in Tool-Namen",
+        "Tool-Count seit v0.2.0 reduziert auf 10 (war 12) — ARCH-006-Refactor"
+      ],
+      "gaps": []
+    },
+    "ARCH-002": {
+      "status": "partial",
+      "category": "ARCH",
+      "severity": "medium",
+      "evidence": [
+        "<use_case>/<important_notes>/<example>-Tags in description= bei den 4 routing-sensitiven Tools (wsl_search, wsl_get_dataset, früher wsl_search_by_domain/_by_location jetzt in wsl_search konsolidiert)",
+        "Alle 10 Tools haben ausführliche Docstrings mit Use-Case-Beschreibung",
+        "Median Tool-Description-Länge ≥ 100 Zeichen, kein Tool unter 50 Zeichen"
+      ],
+      "gaps": [
+        "Die übrigen 6 Tools (wsl_list_organizations, wsl_get_organization, wsl_list_tags, wsl_get_recent_datasets, wsl_get_avalanche_data, wsl_get_forest_data, wsl_get_naturgefahren_data, wsl_catalog_stats) haben keine expliziten <use_case>-Tags im description= — sind aber durch domain-eindeutige Namen und readOnlyHint=true klar adressierbar"
+      ]
+    },
+    "ARCH-003": {
+      "status": "pass",
+      "category": "ARCH",
+      "severity": "medium",
+      "evidence": [
+        "_suggest_tags()-Helper liefert verwandte Tags basierend auf Query-Prefix bei leerem Resultat (server.py)",
+        "wsl_search nutzt die Suggestion-Mechanik (Markdown: 'Mögliche verwandte Tags: `xyz`, `abc`')",
+        "wsl_get_avalanche_data behält den existierenden Fallback ohne org-Filter (server.py:777-781)",
+        "Unit-Test test_wsl_search_empty_returns_tag_suggestions verifiziert das Verhalten gemockt"
+      ],
+      "gaps": []
+    },
+    "ARCH-004": {
+      "status": "pass",
+      "category": "ARCH",
+      "severity": "high",
+      "evidence": [
+        "Alle Tool-Handler nehmen ausschliesslich Pydantic-Input-Modelle",
+        "Kein Zugriff auf Request/websocket/stdin/stdout in Tool-Handlern",
+        "Transport-Setup zentralisiert in main() — Code unverändert seit v0.1.0"
+      ],
+      "gaps": []
+    },
+    "ARCH-005": {
+      "status": "pass",
+      "category": "ARCH",
+      "severity": "critical",
+      "evidence": [
+        "Kein API-Key erforderlich — README dokumentiert explizit",
+        "Nur drei Env-Vars konsumiert: MCP_TRANSPORT, MCP_HOST, PORT — keine Secrets",
+        "Pattern-Suche nach Klartext-Secrets in src/: 0 Treffer"
+      ],
+      "gaps": []
+    },
+    "ARCH-006": {
+      "status": "pass",
+      "category": "ARCH",
+      "severity": "high",
+      "evidence": [
+        "Tool-Count 12 → 10 in v0.2.0 (ARCH-006-Refactor, PR #7)",
+        "Drei überlappende Such-Tools (wsl_search_datasets, wsl_search_by_domain, wsl_search_by_location) zu einem unifizierten wsl_search konsolidiert",
+        "Filter-Kombination (query + domain + organization + bbox in einem Aufruf) jetzt möglich — vorher waren mehrere Aufrufe nötig",
+        "Klare Use-Case-Cluster: 1 Suche, 4 Detail/Get, 3 thematische, 2 Listing"
+      ],
+      "gaps": []
+    },
+    "ARCH-007": {
+      "status": "pass",
+      "category": "ARCH",
+      "severity": "medium",
+      "evidence": [
+        "wsl_catalog_stats aggregiert intern total + orgs + per-domain — Composability-Pattern",
+        "wsl_search kombiniert jetzt mehrere Filter-Dimensionen in einem Tool — siehe ARCH-006"
+      ],
+      "gaps": [
+        "wsl_catalog_stats nutzt sequenzielle await statt asyncio.gather (nice-to-have)"
+      ]
+    },
+    "ARCH-008": {
+      "status": "pass",
+      "category": "ARCH",
+      "severity": "medium",
+      "evidence": [
+        "Zwei MCP-Resources registriert: envidat://organization/{name} und envidat://domain/{domain}"
+      ],
+      "gaps": []
+    },
+    "ARCH-009": {
+      "status": "pass",
+      "category": "ARCH",
+      "severity": "high",
+      "evidence": [
+        "Alle 10 Tools haben annotations={readOnlyHint, destructiveHint, idempotentHint, openWorldHint}",
+        "wsl_get_recent_datasets korrekt mit idempotentHint=False (zeit-abhängig)"
+      ],
+      "gaps": []
+    },
+    "ARCH-011": {
+      "status": "pass",
+      "category": "ARCH",
+      "severity": "medium",
+      "evidence": [
+        "Alle Pflicht-Files vorhanden: README.md, README.de.md, CHANGELOG.md, LICENSE, pyproject.toml",
+        "src-Layout korrekt, hatchling-Build, audits/-Verzeichnis"
+      ],
+      "gaps": []
+    },
+    "ARCH-012": {
+      "status": "pass",
+      "category": "ARCH",
+      "severity": "medium",
+      "evidence": [
+        "SUPPORTED_MCP_PROTOCOL_VERSION = '2025-11-25' als expliziter Spec-Anker (server.py)",
+        "Drift-Warning beim Server-Start wenn LATEST_PROTOCOL_VERSION abweicht",
+        "pyproject.toml pinnt mcp>=1.3.0,<2.0.0 (Major-Upper-Bound)",
+        "CHANGELOG mit semver-konformem [0.2.0] Eintrag"
+      ],
+      "gaps": []
+    },
+    "CH-004": {
+      "status": "pass",
+      "category": "CH",
+      "severity": "medium",
+      "evidence": [
+        "_format_search_results JSON-Branch enthält source/license/provenance/retrieved_at (server.py)",
+        "Per-Dataset license-Feld in JSON-Output",
+        "README 'Safety & Limits' dokumentiert CC-Lizenzen + EnviDat-Terms-of-Use",
+        "Unit-Test test_wsl_search_json_includes_ogd_attribution verifiziert die Felder"
+      ],
+      "gaps": []
+    },
+    "OBS-001": {
+      "status": "pass",
+      "category": "OBS",
+      "severity": "high",
+      "evidence": [
+        "Alle 10 Tools: 'raise ToolError(handle_api_error(e, ...))' statt 'return handle_api_error(...)' (10 Treffer im grep)",
+        "FastMCP propagiert ToolError als CallToolResult.isError=True — MCP-Client kann Erfolg/Fehler unterscheiden",
+        "Beide Resources raisen RuntimeError statt JSON-Error-Payload zurückzugeben",
+        "Unit-Tests test_wsl_search_raises_toolerror_on_timeout und test_wsl_get_dataset_404_raises_toolerror verifizieren das"
+      ],
+      "gaps": []
+    },
+    "OBS-002": {
+      "status": "pass",
+      "category": "OBS",
+      "severity": "high",
+      "evidence": [
+        "handle_api_error in api_client.py:145+ wirft keine Tracebacks — nur HTTP-Code + 200 Zeichen Body",
+        "Keine format_exc/traceback im src/-Code"
+      ],
+      "gaps": []
+    },
+    "OBS-003": {
+      "status": "pass",
+      "category": "OBS",
+      "severity": "medium",
+      "evidence": [
+        "structlog>=24.1.0 in pyproject.toml runtime dependencies",
+        "structlog mit JSONRenderer auf stderr konfiguriert (server.py:62-72)",
+        "Bound-Context-Beispiel: logger.info('server.start', transport=..., host=..., port=...) (server.py main())",
+        "Smoke-Output validiert JSON: '{\"event\": \"server.start\", \"level\": \"info\", \"timestamp\": \"...\", ...}'"
+      ],
+      "gaps": []
+    },
+    "OBS-004": {
+      "status": "pass",
+      "category": "OBS",
+      "severity": "critical",
+      "evidence": [
+        "logging.basicConfig(stream=sys.stderr, ...) (server.py)",
+        "structlog ebenfalls über stdlib auf stderr",
+        "Keine print()-Aufrufe in src/"
+      ],
+      "gaps": []
+    },
+    "OPS-001": {
+      "status": "pass",
+      "category": "OPS",
+      "severity": "high",
+      "evidence": [
+        "tests/test_unit_tools.py mit 28+ respx-gemockten Unit-Tests für alle 10 Tools + Pydantic-Validation",
+        "tests/test_unit_security.py mit 10 Security-Tests (ALLOWED_HOSTS, redirect-rejection, MCP_HOST)",
+        "tests/conftest.py mit Sample-CKAN-Fixtures",
+        "tests/test_integration.py und tests/test_20_szenarien.py mit pytestmark = pytest.mark.live",
+        "CI: default-Job 'pytest -m \"not live\"' läuft offline; separater live-tests-Job nur auf main-push / workflow_dispatch",
+        "Default-Lauf 'pytest -m \"not live\"': 40 passed, 31 deselected in 1.4s"
+      ],
+      "gaps": []
+    },
+    "OPS-002": {
+      "status": "pass",
+      "category": "OPS",
+      "severity": "medium",
+      "evidence": [
+        "Bilingual: README.md + README.de.md",
+        "ASCII-Architekturdiagramm + Anker-Demo-Frage in beiden Sprachen",
+        "Alle Pflicht-Sektionen vorhanden + neue 'Phase'-Sektion",
+        "Configuration-Tabelle dokumentiert MCP_HOST + MCP_TRANSPORT + PORT"
+      ],
+      "gaps": []
+    },
+    "OPS-003": {
+      "status": "pass",
+      "category": "OPS",
+      "severity": "high",
+      "evidence": [
+        "'## Phase' Sektion in beiden READMEs deklariert Phase 1 (Read-only Wrapper)",
+        "Status-Tabelle mit Audit-Run-Verweis, Container-Status, Test-Suite-Status",
+        "Alle 10 Tools mit readOnlyHint=True konsistent mit Phase 1"
+      ],
+      "gaps": []
+    },
+    "SCALE-002": {
+      "status": "pass",
+      "category": "SCALE",
+      "severity": "high",
+      "evidence": [
+        "README Cloud-Deployment-Sektion enthält explizite Sticky-Session-Warnung in beiden Sprachen",
+        "Beispiel sessionAffinity: ClientIP für Kubernetes",
+        "Dockerfile + Container-Workflow ermöglichen reproduzierbares Deployment (siehe SEC-007)"
+      ],
+      "gaps": [
+        "Keine fertigen k8s/helm-Manifeste im Repo — bewusst, da Deployment-Plattform pro Nutzer variiert"
+      ]
+    },
+    "SEC-004": {
+      "status": "pass",
+      "category": "SEC",
+      "severity": "critical",
+      "evidence": [
+        "Base-URL hardcoded HTTPS-only (api_client.py)",
+        "Allow-List zusätzlich erzwungen: assert_host_allowed(ENVIDAT_API_BASE) bei jedem _make_client()-Aufruf",
+        "Kein user-controllable hostname/scheme",
+        "Pydantic-Validation für bbox-Koordinaten (-180..180 / -90..90)"
+      ],
+      "gaps": []
+    },
+    "SEC-005": {
+      "status": "pass",
+      "category": "SEC",
+      "severity": "high",
+      "evidence": [
+        "follow_redirects=False in _make_client() (api_client.py)",
+        "Cross-Origin-Redirect bricht beim raise_for_status mit HTTPStatusError ab",
+        "Unit-Test test_redirect_does_not_silently_follow_cross_origin verifiziert das gemockt"
+      ],
+      "gaps": [
+        "Kein expliziter DNS-Pinning-Helper — praktisch low-impact da Single-Host und Redirects geblockt"
+      ]
+    },
+    "SEC-006": {
+      "status": "pass",
+      "category": "SEC",
+      "severity": "high",
+      "evidence": [
+        "Default-Transport stdio (server.py)",
+        "Streamable-HTTP nur via expliziter MCP_TRANSPORT-Env-Var"
+      ],
+      "gaps": []
+    },
+    "SEC-007": {
+      "status": "pass",
+      "category": "SEC",
+      "severity": "high",
+      "evidence": [
+        "Multi-Stage Dockerfile mit python:3.11-slim, non-root mcp-User (uid=1000), /usr/sbin/nologin shell",
+        "OCI-Labels gesetzt (source/title/description/licenses)",
+        ".dockerignore exkludiert tests/, audits/, docs/, .git, caches",
+        ".github/workflows/container.yml: multi-arch (amd64+arm64) Build, Push zu ghcr.io/malkreide/wsl-envidat-mcp",
+        "README dokumentiert gehärteten 'docker run' (--read-only, --cap-drop=ALL, --security-opt=no-new-privileges) plus k8s securityContext-Block"
+      ],
+      "gaps": []
+    },
+    "SEC-008": {
+      "status": "pass",
+      "category": "SEC",
+      "severity": "medium",
+      "evidence": [
+        "pyproject.toml hat nur Standard [project.scripts] entry-point",
+        "Hatchling-Build ohne custom cmdclass",
+        "README zeigt vollen 'uvx wsl-envidat-mcp' Install-Befehl"
+      ],
+      "gaps": []
+    },
+    "SEC-009": {
+      "status": "pass",
+      "category": "SEC",
+      "severity": "critical",
+      "evidence": [
+        "SDK-Pin mcp>=1.3.0,<2.0.0 — Major-Drift wird beim pip install blockiert",
+        "SUPPORTED_MCP_PROTOCOL_VERSION mit Drift-Warning beim Server-Start",
+        "Multi-Tenant-Warnung in beiden READMEs: 'Streamable HTTP ohne Auth-Gateway ist Single-User only — für Multi-Tenant ist OAuth-Gateway zwingend'"
+      ],
+      "gaps": []
+    },
+    "SEC-013": {
+      "status": "pass",
+      "category": "SEC",
+      "severity": "high",
+      "evidence": [
+        "Kein API-Key — nur public unauth CKAN-API",
+        "Nur drei nicht-sensitive Env-Vars: MCP_TRANSPORT, MCP_HOST, PORT"
+      ],
+      "gaps": []
+    },
+    "SEC-016": {
+      "status": "pass",
+      "category": "SEC",
+      "severity": "critical",
+      "evidence": [
+        "MCP_HOST-Env-Var mit Default '127.0.0.1' (server.py main())",
+        "mcp.settings.host wird vor mcp.run() explizit gesetzt",
+        "Dockerfile-Default MCP_HOST=0.0.0.0 für Container-Netz-Isolation",
+        "README dokumentiert lokale/Container-Differenzierung in beiden Sprachen",
+        "Unit-Tests test_main_defaults_to_127_0_0_1 + test_main_accepts_legacy_underscore_transport"
+      ],
+      "gaps": []
+    },
+    "SEC-018": {
+      "status": "pass",
+      "category": "SEC",
+      "severity": "high",
+      "evidence": [
+        "Alle Pydantic-Input-Modelle nutzen ConfigDict(extra='forbid', str_strip_whitespace=True, validate_assignment=True)",
+        "Field-Constraints (min_length/max_length/ge/le) durchgängig",
+        "SearchInput @model_validator erzwingt mindestens einen Filter + bbox-Range-Validation",
+        "Enum-Typen für WSLDomain, ResponseFormat"
+      ],
+      "gaps": []
+    },
+    "SEC-019": {
+      "status": "pass",
+      "category": "SEC",
+      "severity": "critical",
+      "evidence": [
+        "Trifecta-Bewertung weiterhin: (1) keine PII (2) untrusted Content = nur Dataset-Texts von Forschern (3) keine externe Kommunikation (nur GET zu envidat.ch)",
+        "Egress-Allow-List zusätzlich aktiv (SEC-021) — verstärkt die Trifecta-Trennung",
+        "Alle 10 Tools mit readOnlyHint=True"
+      ],
+      "gaps": []
+    },
+    "SEC-020": {
+      "status": "pass",
+      "category": "SEC",
+      "severity": "critical",
+      "evidence": [
+        "0 Treffer für os.system|shell=True|eval()|exec() in src/",
+        "Keine subprocess-Aufrufe im Code"
+      ],
+      "gaps": []
+    },
+    "SEC-021": {
+      "status": "pass",
+      "category": "SEC",
+      "severity": "high",
+      "evidence": [
+        "ALLOWED_HOSTS frozenset = {'www.envidat.ch', 'envidat.ch'} in api_client.py",
+        "assert_host_allowed() bei jedem _make_client()-Aufruf",
+        "follow_redirects=False blockt Cross-Origin-Redirects auf Network-Layer",
+        "Unit-Tests verifizieren Allow-List (AWS-IMDS, Sub-Domain-Phishing, Case-Insensitive-Bypass alle abgelehnt)"
+      ],
+      "gaps": []
+    }
+  }
+}
