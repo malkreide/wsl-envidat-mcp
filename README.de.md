@@ -254,7 +254,10 @@ wsl-envidat-mcp/
 │   └── ci.yml              # GitHub Actions CI (Python 3.11–3.13)
 ├── pyproject.toml          # Projektkonfiguration (hatchling)
 ├── CHANGELOG.md
-├── CONTRIBUTING.md
+├── CONTRIBUTING.md         # Beitragsleitfaden (Englisch)
+├── CONTRIBUTING.de.md      # Beitragsleitfaden (Deutsch)
+├── SECURITY.md             # Sicherheitsrichtlinie (Englisch)
+├── SECURITY.de.md          # Sicherheitsrichtlinie (Deutsch)
 ├── LICENSE                 # MIT
 ├── README.md               # Englische Version
 └── README.de.md            # Diese Datei
@@ -295,6 +298,8 @@ Dieser Server ist Teil des Swiss Open Data MCP-Portfolios und lässt sich kombin
 - **Nutzungsbedingungen:** Daten unterliegen den [EnviDat-Nutzungsbedingungen](https://www.envidat.ch/about). Einzelne Datensätze werden unter verschiedenen offenen Lizenzen publiziert (Creative Commons, CC0) — siehe Datensatz-Metadaten.
 - **Keine Garantien:** Dies ist ein Community-Projekt, nicht affiliiert mit WSL oder EnviDat. Die Verfügbarkeit hängt von der vorgelagerten EnviDat-API ab.
 
+Die vollständige Sicherheitslage (Egress-Allow-List, Redirect-Handling, akzeptierte Risiken) ist in [SECURITY.md](SECURITY.md) dokumentiert.
+
 ---
 
 ## Tests
@@ -325,7 +330,7 @@ Siehe [CHANGELOG.md](CHANGELOG.md)
 
 ## Mitwirken
 
-Siehe [CONTRIBUTING.md](CONTRIBUTING.md)
+Siehe [CONTRIBUTING.de.md](CONTRIBUTING.de.md)
 
 ---
 

@@ -1,123 +1,161 @@
-# Beitragen / Contributing
+# Contributing to wsl-envidat-mcp
 
-> 🇩🇪 [Deutsch](#deutsch) · 🇬🇧 [English](#english)
+Thank you for your interest in contributing to this project! This MCP server is part of the [Swiss Public Data MCP Portfolio](https://github.com/malkreide) and follows shared conventions across the portfolio.
+
+[🇩🇪 Deutsche Version](CONTRIBUTING.de.md)
 
 ---
 
-## Deutsch
+## Table of Contents
 
-Vielen Dank für Ihr Interesse an diesem Projekt! Beiträge sind willkommen.
+- [Reporting Issues](#reporting-issues)
+- [Development Setup](#development-setup)
+- [Making Changes](#making-changes)
+- [Code Style](#code-style)
+- [Testing](#testing)
+- [Submitting a Pull Request](#submitting-a-pull-request)
+- [Data Sources & Attribution](#data-sources--attribution)
 
-### Wie kann ich beitragen?
+---
 
-**Fehler melden:** Erstellen Sie ein [Issue](../../issues) mit einer klaren Beschreibung des Problems, Schritten zur Reproduktion und der erwarteten vs. tatsächlichen Ausgabe.
+## Reporting Issues
 
-**Feature vorschlagen:** Beschreiben Sie den Use Case, idealerweise mit einem Bezug zum Schweizer Umweltforschungs-Kontext (Lawinengefahr, Waldzustand, Naturgefahren, Biodiversität etc.).
+Before opening an issue, please check [existing issues](https://github.com/malkreide/wsl-envidat-mcp/issues) to avoid duplicates.
 
-**Code beitragen:**
+When reporting a bug, please include:
 
-1. Forken Sie das Repository
-2. Erstellen Sie einen Feature-Branch: `git checkout -b feature/mein-feature`
-3. Installieren Sie die Dev-Abhängigkeiten: `pip install -e ".[dev]"`
-4. Schreiben Sie Tests für Ihre Änderungen
-5. Lint prüfen: `ruff check src/ tests/`
-6. Commit mit aussagekräftiger Nachricht (Conventional Commits): `git commit -m "feat: neues Tool für Schneedaten hinzufügen"`
-7. Pull Request erstellen
+- A clear description of the problem
+- Steps to reproduce
+- Expected vs. actual behaviour
+- Python version and OS
+- Relevant error messages or logs
 
-### Code-Standards
+For API-related issues (e.g. endpoint or schema changes at envidat.ch), please note that this server depends on the external EnviDat CKAN API, which may change without notice.
 
-- Python 3.11+, Ruff für Linting
-- Docstrings auf Englisch (für internationale Kompatibilität)
-- Kommentare und Fehlermeldungen dürfen Deutsch oder Englisch sein
-- Alle MCP-Tools müssen `readOnlyHint: True` setzen (nur lesender Zugriff)
-- Pydantic-Modelle für alle Tool-Inputs
-- Nur öffentliche Open-Data-Quellen (OGD) — keine privaten oder lizenzierten APIs
+---
 
-### Tests
-
-Dieses Projekt nutzt Live-API-Integrationstests gegen die öffentliche EnviDat API. Da kein API-Key erforderlich ist, können alle Tests direkt ausgeführt werden:
+## Development Setup
 
 ```bash
-# Unit-Tests (kein Netzwerkzugriff)
-PYTHONPATH=src pytest tests/ -m "not live"
+# 1. Clone the repository
+git clone https://github.com/malkreide/wsl-envidat-mcp.git
+cd wsl-envidat-mcp
 
-# Integrationstests (Live-API)
-PYTHONPATH=src pytest tests/ -m "live"
+# 2. Install in editable mode with dev dependencies
+pip install -e ".[dev]"
 
-# Alle Tests
-PYTHONPATH=src pytest tests/
+# 3. Verify the server starts
+python -m wsl_envidat_mcp.server
 ```
 
-### Commit-Nachrichten (Conventional Commits)
-
-| Präfix | Wann verwenden |
-|--------|----------------|
-| `feat:` | Neues Tool, neue Resource, neue Funktionalität |
-| `fix:` | Fehlerbehebung |
-| `docs:` | Nur Dokumentationsänderungen |
-| `refactor:` | Code-Umstrukturierung ohne Verhaltensänderung |
-| `test:` | Neue oder angepasste Tests |
-| `chore:` | Build, CI, Abhängigkeiten |
+**Requirements:**
+- Python 3.11+
+- No API keys required – all data sources are publicly accessible
 
 ---
 
-## English
+## Making Changes
 
-Thank you for your interest in this project! Contributions are welcome.
+1. **Fork** the repository and create a feature branch:
+   ```bash
+   git checkout -b feat/your-feature-name
+   ```
 
-### How can I contribute?
+2. Follow the [Conventional Commits](https://www.conventionalcommits.org/) format:
 
-**Report bugs:** Create an [Issue](../../issues) with a clear description, reproduction steps, and expected vs. actual output.
+   | Type | When to use |
+   |---|---|
+   | `feat` | New tool or capability |
+   | `fix` | Bug fix |
+   | `docs` | Documentation only |
+   | `refactor` | Code restructuring, no behaviour change |
+   | `test` | Adding or updating tests |
+   | `chore` | Build, dependencies, CI |
 
-**Suggest features:** Describe the use case, ideally with a reference to Swiss environmental research context (avalanche risk, forest condition, natural hazards, biodiversity, etc.).
+3. Update `CHANGELOG.md` under `[Unreleased]` for any user-visible change.
 
-**Contribute code:**
+4. If you add a new tool, update both `README.md` and `README.de.md` accordingly.
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Install dev dependencies: `pip install -e ".[dev]"`
-4. Write tests for your changes
-5. Run linter: `ruff check src/ tests/`
-6. Commit with clear message (Conventional Commits): `git commit -m "feat: add new tool for snow data"`
-7. Create a Pull Request
+---
 
-### Code Standards
+## Code Style
 
-- Python 3.11+, Ruff for linting
-- Docstrings in English (for international compatibility)
-- Comments and error messages may be in German or English
-- All MCP tools must set `readOnlyHint: True` (read-only access)
-- Pydantic models for all tool inputs
+This project uses [Ruff](https://docs.astral.sh/ruff/) for linting and formatting.
+
+```bash
+# Check for linting issues
+ruff check src/
+
+# Auto-fix where possible
+ruff check src/ --fix
+
+# Format code
+ruff format src/
+```
+
+The CI pipeline runs Ruff on every push – PRs with linting errors will not be merged.
+
+**General conventions:**
+- Type hints on all public functions
+- Pydantic v2 for input validation at all tool boundaries
+- `httpx` for HTTP calls
+- All MCP tools must set `readOnlyHint: True` (read-only access only)
+- Descriptive tool descriptions (they are read by the AI model)
 - Only public open data sources (OGD) — no private or licensed APIs
 
-### Tests
+---
 
-This project uses live API integration tests against the public EnviDat API. Since no API key is required, all tests can be run directly:
+## Testing
 
 ```bash
-# Unit tests (no network access)
+# Unit tests only (offline, no network — CKAN responses mocked via respx)
 PYTHONPATH=src pytest tests/ -m "not live"
 
-# Integration tests (live API)
+# Integration tests (live calls to envidat.ch)
 PYTHONPATH=src pytest tests/ -m "live"
 
-# All tests
+# Full suite
 PYTHONPATH=src pytest tests/
 ```
 
-### Commit Messages (Conventional Commits)
+Tests are marked with `@pytest.mark.live` when they call external APIs. The CI pipeline runs only non-live tests on PRs to avoid flakiness from external dependencies; the live suite runs on `main` pushes and manual `workflow_dispatch` triggers.
 
-| Prefix | When to use |
-|--------|-------------|
-| `feat:` | New tool, new resource, new functionality |
-| `fix:` | Bug fix |
-| `docs:` | Documentation changes only |
-| `refactor:` | Code restructuring without behaviour change |
-| `test:` | New or updated tests |
-| `chore:` | Build, CI, dependencies |
+When adding a new tool, please add at least one unit test and one live integration test.
 
 ---
 
-## Lizenz / License
+## Submitting a Pull Request
 
-MIT – see [LICENSE](LICENSE)
+1. Ensure all tests pass and Ruff reports no errors
+2. Update `CHANGELOG.md`
+3. Push your branch and open a pull request against `main`
+4. Describe what changed and why – link any related issues
+
+PRs that introduce breaking changes to existing tool signatures require a discussion first.
+
+---
+
+## Data Sources & Attribution
+
+This server uses open data from the WSL via the EnviDat platform:
+
+| Source | Provider | Terms |
+|---|---|---|
+| [envidat.ch](https://www.envidat.ch/) | WSL / EnviDat (CKAN API) | Open licences (Creative Commons, CC0), per-dataset |
+
+Individual datasets on EnviDat are published under **various open licences** (Creative Commons, CC0) — see each dataset's metadata for the applicable licence and attribution requirements. Any contribution that incorporates additional data sources must document their licence and attribution requirements here.
+
+---
+
+## Portfolio Context
+
+This server is part of a coherent portfolio of Swiss open-data MCP servers. When contributing, please consider:
+
+- **No-Auth-First**: prefer endpoints that require no authentication
+- **Read-only**: all tools perform HTTP GET requests only — no data is written, modified, or deleted upstream
+- **Graceful degradation**: the server should start and provide partial functionality even if the API is unreachable
+- **Bilingual docs**: user-facing documentation changes must be reflected in both `README.md` (English) and `README.de.md` (German)
+
+---
+
+Questions? Open a [GitHub Discussion](https://github.com/malkreide/wsl-envidat-mcp/discussions) or file an issue.
