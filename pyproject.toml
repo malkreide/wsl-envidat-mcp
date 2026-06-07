@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wsl-envidat-mcp"
-version = "0.2.0"
+version = "0.2.2"
 description = "MCP-Server für WSL/EnviDat – Umweltforschungs- und Monitoringdaten der Eidg. Forschungsanstalt für Wald, Schnee und Landschaft"
 readme = "README.md"
 license = { text = "MIT" }
