@@ -351,3 +351,5 @@ Hayal Oezkan · [malkreide](https://github.com/malkreide)
 - **Data:** [EnviDat](https://www.envidat.ch/) – WSL Swiss Federal Research Institute for Forest, Snow and Landscape
 - **Protocol:** [Model Context Protocol](https://modelcontextprotocol.io/) – Anthropic / Linux Foundation
 - **Portfolio:** [Swiss Public Data MCP Portfolio](https://github.com/malkreide)
+
+<!-- mcp-name: io.github.malkreide/wsl-envidat-mcp -->
