@@ -16,7 +16,7 @@ from typing import Any
 import httpx
 import pytest
 import respx
-from mcp.server.fastmcp.exceptions import ToolError
+from mcp.server.mcpserver.exceptions import ToolError
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
@@ -75,9 +75,7 @@ async def test_wsl_search_json_includes_ogd_attribution(
         return_value=httpx.Response(200, json=sample_search_response)
     )
 
-    out = await wsl_search(
-        SearchInput(query="forest", response_format=ResponseFormat.JSON)
-    )
+    out = await wsl_search(SearchInput(query="forest", response_format=ResponseFormat.JSON))
     parsed = json.loads(out)
     assert parsed["total_found"] == 815
     assert len(parsed["datasets"]) == 2
@@ -190,9 +188,7 @@ async def test_wsl_search_combines_query_and_organization(
 
 @respx.mock
 async def test_wsl_get_dataset_markdown(sample_dataset: dict[str, Any]) -> None:
-    respx.get(f"{ENVIDAT_API_BASE}/package_show").mock(
-        return_value=_ok(sample_dataset)
-    )
+    respx.get(f"{ENVIDAT_API_BASE}/package_show").mock(return_value=_ok(sample_dataset))
 
     out = await wsl_get_dataset(GetDatasetInput(id_or_slug=sample_dataset["name"]))
     assert "Fatal avalanche accidents" in out

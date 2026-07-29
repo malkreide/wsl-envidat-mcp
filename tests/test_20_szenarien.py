@@ -69,6 +69,7 @@ from wsl_envidat_mcp.server import (
 #  Prüft: wsl_search + response_format=json
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 async def test_01_search_json_format() -> None:
     """Szenario 1: Volltextsuche gibt valides JSON zurück."""
     params = SearchInput(
@@ -92,6 +93,7 @@ async def test_01_search_json_format() -> None:
 #  Prüft: wsl_search + organization-Filter
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 async def test_02_search_with_org_filter() -> None:
     """Szenario 2: Suche eingeschränkt auf eine bestimmte Organisation."""
     # Zuerst Organisationen holen
@@ -114,6 +116,7 @@ async def test_02_search_with_org_filter() -> None:
 #  Prüft: wsl_get_dataset mit Markdown-Format (DOI, Ressourcen, Tags)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 async def test_03_dataset_details_markdown() -> None:
     """Szenario 3: Abruf vollständiger Dataset-Details in Markdown."""
     # Suche bekannten Datensatz
@@ -134,6 +137,7 @@ async def test_03_dataset_details_markdown() -> None:
 #  Prüft: wsl_get_dataset + response_format=json
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 async def test_04_dataset_details_json() -> None:
     """Szenario 4: Dataset-Details als vollständiges JSON."""
     search = await ckan_package_search(query="forest inventory", rows=1)
@@ -153,6 +157,7 @@ async def test_04_dataset_details_json() -> None:
 #  Prüft: wsl_search für jede WSLDomain
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 async def test_05_all_domains() -> None:
     """Szenario 5: Alle 5 Forschungsdomänen liefern Ergebnisse."""
     for domain in WSLDomain:
@@ -166,6 +171,7 @@ async def test_05_all_domains() -> None:
 #  SZENARIO 6: Domänensuche mit JSON-Format
 #  Prüft: wsl_search + JSON-Ausgabe
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 async def test_06_domain_json() -> None:
     """Szenario 6: Domänensuche in JSON-Format."""
@@ -186,6 +192,7 @@ async def test_06_domain_json() -> None:
 #  Prüft: wsl_search mit BBox um Davos
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 async def test_07_spatial_search_davos() -> None:
     """Szenario 7: Räumliche Suche in der Region Davos."""
     params = SearchInput(bbox=[9.7, 46.7, 10.0, 46.9], limit=5)
@@ -200,10 +207,10 @@ async def test_07_spatial_search_davos() -> None:
 #  Prüft: wsl_search + zusätzlicher query-Parameter
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 async def test_08_spatial_search_with_query() -> None:
     """Szenario 8: Räumliche Suche kombiniert mit Suchbegriff."""
-    params = SearchInput(bbox=[5.95, 45.8, 10.5, 47.8], query="permafrost",
-        limit=5)
+    params = SearchInput(bbox=[5.95, 45.8, 10.5, 47.8], query="permafrost", limit=5)
     result = await wsl_search(params)
     assert "BBox" in result or "Keine Datensätze" in result, "Unerwartete Antwort"
     print(f"  ✓ Raeumliche Suche CH + 'permafrost': OK")
@@ -213,6 +220,7 @@ async def test_08_spatial_search_with_query() -> None:
 #  SZENARIO 9: Organisationen auflisten
 #  Prüft: wsl_list_organizations Vollständigkeit
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 async def test_09_list_organizations() -> None:
     """Szenario 9: Alle WSL-Forschungseinheiten werden aufgelistet."""
@@ -228,6 +236,7 @@ async def test_09_list_organizations() -> None:
 #  SZENARIO 10: Organisation-Details mit Datensätzen
 #  Prüft: wsl_get_organization mit include_datasets=True
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 async def test_10_organization_details() -> None:
     """Szenario 10: Details einer Organisation inkl. Datensätze."""
@@ -247,6 +256,7 @@ async def test_10_organization_details() -> None:
 #  Prüft: wsl_list_tags mit query-Parameter
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 async def test_11_tags_with_prefix() -> None:
     """Szenario 11: Tags nach Präfix filtern (z.B. 'forest')."""
     params = ListTagsInput(query="forest", limit=20)
@@ -260,6 +270,7 @@ async def test_11_tags_with_prefix() -> None:
 #  SZENARIO 12: Neueste Datensätze
 #  Prüft: wsl_get_recent_datasets Sortierung und Inhalte
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 async def test_12_recent_datasets() -> None:
     """Szenario 12: Zuletzt aktualisierte Datensätze abrufen."""
@@ -275,6 +286,7 @@ async def test_12_recent_datasets() -> None:
 #  Prüft: wsl_get_avalanche_data Spezial-Tool
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 async def test_13_avalanche_data() -> None:
     """Szenario 13: SLF Lawinen- und Schneedaten abrufen."""
     params = SimpleQueryInput(limit=5, response_format=ResponseFormat.MARKDOWN)
@@ -287,6 +299,7 @@ async def test_13_avalanche_data() -> None:
 #  SZENARIO 14: Walddaten (LFI, Sanasilva)
 #  Prüft: wsl_get_forest_data Spezial-Tool
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 async def test_14_forest_data() -> None:
     """Szenario 14: Walddaten inkl. Forstinventar LFI."""
@@ -303,6 +316,7 @@ async def test_14_forest_data() -> None:
 #  Prüft: wsl_get_naturgefahren_data Spezial-Tool
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 async def test_15_naturgefahren_data() -> None:
     """Szenario 15: Naturgefahren-Daten (Lawinen, Murgänge, Steinschlag)."""
     params = SimpleQueryInput(limit=8, response_format=ResponseFormat.MARKDOWN)
@@ -316,6 +330,7 @@ async def test_15_naturgefahren_data() -> None:
 #  SZENARIO 16: Katalog-Statistiken
 #  Prüft: wsl_catalog_stats (Gesamtübersicht mit Domänen-Counts)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 async def test_16_catalog_stats() -> None:
     """Szenario 16: Katalog-Übersicht mit Domänen-Statistiken."""
@@ -333,6 +348,7 @@ async def test_16_catalog_stats() -> None:
 #  Prüft: envidat://organization/{name} Resource
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 async def test_17_resource_organization() -> None:
     """Szenario 17: MCP-Resource für Organisation liefert JSON."""
     orgs = await ckan_organization_list(all_fields=True)
@@ -349,6 +365,7 @@ async def test_17_resource_organization() -> None:
 #  SZENARIO 18: MCP Resource – Domäne
 #  Prüft: envidat://domain/{domain} Resource
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 async def test_18_resource_domain() -> None:
     """Szenario 18: MCP-Resource für Forschungsdomäne."""
@@ -368,13 +385,14 @@ async def test_18_resource_domain() -> None:
 #  Prüft: Fehlermeldung bei nicht existierendem Datensatz
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 async def test_19_error_invalid_dataset() -> None:
     """Szenario 19: Fehlerbehandlung bei ungültigem Datensatz-Slug.
 
     Seit v0.2.0 (OBS-001) wird der Fehler als ToolError raised, sodass
     der MCP-Client den Fehler eindeutig als isError=True erkennt.
     """
-    from mcp.server.fastmcp.exceptions import ToolError
+    from mcp.server.mcpserver.exceptions import ToolError
 
     params = GetDatasetInput(id_or_slug="dieser-datensatz-existiert-sicher-nicht-xyz-999")
     try:
@@ -391,6 +409,7 @@ async def test_19_error_invalid_dataset() -> None:
 #  SZENARIO 20: Pydantic-Validierung – BBox-Validierung
 #  Prüft: SearchInput lehnt ungültige Koordinaten/Filter ab
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 async def test_20_pydantic_validation() -> None:
     """Szenario 20: Pydantic-Validierung bei ungültigen Eingaben."""
@@ -428,28 +447,29 @@ async def test_20_pydantic_validation() -> None:
 #  TEST-RUNNER
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 async def run_all_tests() -> None:
     tests = [
-        ("01 – Volltextsuche JSON-Format",              test_01_search_json_format),
-        ("02 – Suche mit Organisations-Filter",         test_02_search_with_org_filter),
-        ("03 – Dataset-Details Markdown",               test_03_dataset_details_markdown),
-        ("04 – Dataset-Details JSON",                   test_04_dataset_details_json),
-        ("05 – Alle 5 Domänen",                        test_05_all_domains),
-        ("06 – Domäne schnee_eis JSON",                test_06_domain_json),
-        ("07 – Räumliche Suche Davos",                 test_07_spatial_search_davos),
-        ("08 – Räumliche Suche + Suchbegriff",         test_08_spatial_search_with_query),
-        ("09 – Organisationen auflisten",              test_09_list_organizations),
-        ("10 – Organisation-Details mit Datensätzen",  test_10_organization_details),
-        ("11 – Tags nach Präfix filtern",              test_11_tags_with_prefix),
-        ("12 – Neueste Datensätze",                    test_12_recent_datasets),
-        ("13 – Lawinendaten (SLF)",                    test_13_avalanche_data),
-        ("14 – Walddaten (LFI) JSON",                 test_14_forest_data),
-        ("15 – Naturgefahren-Daten",                   test_15_naturgefahren_data),
-        ("16 – Katalog-Statistiken",                   test_16_catalog_stats),
-        ("17 – MCP Resource Organisation",             test_17_resource_organization),
-        ("18 – MCP Resource Domäne",                   test_18_resource_domain),
-        ("19 – Fehlerbehandlung ungültiger Slug",      test_19_error_invalid_dataset),
-        ("20 – Pydantic-Validierung",                  test_20_pydantic_validation),
+        ("01 – Volltextsuche JSON-Format", test_01_search_json_format),
+        ("02 – Suche mit Organisations-Filter", test_02_search_with_org_filter),
+        ("03 – Dataset-Details Markdown", test_03_dataset_details_markdown),
+        ("04 – Dataset-Details JSON", test_04_dataset_details_json),
+        ("05 – Alle 5 Domänen", test_05_all_domains),
+        ("06 – Domäne schnee_eis JSON", test_06_domain_json),
+        ("07 – Räumliche Suche Davos", test_07_spatial_search_davos),
+        ("08 – Räumliche Suche + Suchbegriff", test_08_spatial_search_with_query),
+        ("09 – Organisationen auflisten", test_09_list_organizations),
+        ("10 – Organisation-Details mit Datensätzen", test_10_organization_details),
+        ("11 – Tags nach Präfix filtern", test_11_tags_with_prefix),
+        ("12 – Neueste Datensätze", test_12_recent_datasets),
+        ("13 – Lawinendaten (SLF)", test_13_avalanche_data),
+        ("14 – Walddaten (LFI) JSON", test_14_forest_data),
+        ("15 – Naturgefahren-Daten", test_15_naturgefahren_data),
+        ("16 – Katalog-Statistiken", test_16_catalog_stats),
+        ("17 – MCP Resource Organisation", test_17_resource_organization),
+        ("18 – MCP Resource Domäne", test_18_resource_domain),
+        ("19 – Fehlerbehandlung ungültiger Slug", test_19_error_invalid_dataset),
+        ("20 – Pydantic-Validierung", test_20_pydantic_validation),
     ]
 
     print("\n" + "=" * 65)
