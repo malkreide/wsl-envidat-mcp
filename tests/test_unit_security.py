@@ -112,10 +112,12 @@ def test_main_defaults_to_127_0_0_1(monkeypatch: pytest.MonkeyPatch) -> None:
 
     called_with: dict[str, object] = {}
 
-    def fake_run(transport: str) -> None:
+    def fake_run(transport: str, **kwargs) -> None:
+        # mcp 2.x: the bind address arrives as run() kwargs; MCPServer.settings
+        # no longer carries host/port.
         called_with["transport"] = transport
-        called_with["host"] = server.mcp.settings.host
-        called_with["port"] = server.mcp.settings.port
+        called_with["host"] = kwargs.get("host")
+        called_with["port"] = kwargs.get("port")
 
     monkeypatch.setattr(server.mcp, "run", fake_run)
     server.main()
@@ -139,7 +141,7 @@ def test_main_accepts_legacy_underscore_transport(
     monkeypatch.setattr(
         server.mcp,
         "run",
-        lambda transport: called_with.update(transport=transport),
+        lambda transport, **kwargs: called_with.update(transport=transport),
     )
     server.main()
     assert called_with["transport"] == "streamable-http"

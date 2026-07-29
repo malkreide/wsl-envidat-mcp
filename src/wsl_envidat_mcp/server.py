@@ -21,8 +21,8 @@ from enum import Enum
 from typing import Any, Optional
 
 import structlog
-from mcp.server.fastmcp import FastMCP
-from mcp.server.fastmcp.exceptions import ToolError
+from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import LATEST_PROTOCOL_VERSION
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -77,7 +77,7 @@ logger = structlog.get_logger("wsl_envidat_mcp")
 
 # ─── MCP Server ───────────────────────────────────────────────────────────────
 
-mcp = FastMCP(
+mcp = MCPServer(
     "wsl-envidat-mcp",
     instructions=(
         "Dieser Server gibt Zugriff auf Umweltforschungs- und Monitoringdaten der WSL "
@@ -1086,8 +1086,6 @@ def main() -> None:
         )
 
     if transport == "streamable-http":
-        mcp.settings.host = host
-        mcp.settings.port = port
         security = build_transport_security(host, port)
         if security is None:
             logger.warning(
@@ -1097,7 +1095,6 @@ def main() -> None:
                 "reachable under; without it the SDK does not check the Host "
                 "header at all.",
             )
-        mcp.settings.transport_security = security
         logger.info(
             "server.start",
             transport="streamable-http",
@@ -1105,7 +1102,14 @@ def main() -> None:
             port=port,
             mcp_protocol_version=LATEST_PROTOCOL_VERSION,
         )
-        mcp.run(transport="streamable-http")
+        # mcp 2.x: bind address and transport_security are run() kwargs;
+        # MCPServer.settings no longer carries them.
+        mcp.run(
+            transport="streamable-http",
+            host=host,
+            port=port,
+            transport_security=security,
+        )
     else:
         logger.info(
             "server.start",

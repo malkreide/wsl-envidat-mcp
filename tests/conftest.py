@@ -55,9 +55,7 @@ def _skip_live_if_api_unreachable(request: pytest.FixtureRequest) -> None:
     if "reachable" not in _LIVE_API_PROBE:
         _LIVE_API_PROBE["reachable"] = _envidat_reachable()
     if not _LIVE_API_PROBE["reachable"]:
-        pytest.skip(
-            "EnviDat-API (www.envidat.ch) nicht erreichbar – Live-Tests übersprungen"
-        )
+        pytest.skip("EnviDat-API (www.envidat.ch) nicht erreichbar – Live-Tests übersprungen")
 
 
 @pytest.fixture

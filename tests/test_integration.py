@@ -35,6 +35,7 @@ from wsl_envidat_mcp.api_client import (
 
 # ─── Testfälle ────────────────────────────────────────────────────────────────
 
+
 async def test_catalog_search() -> None:
     """Test: Volltextsuche über den Katalog."""
     result = await ckan_package_search(query="snow avalanche", rows=5)
@@ -54,9 +55,7 @@ async def test_wildcard_search() -> None:
 async def test_get_avalanche_dataset() -> None:
     """Test: Bekannter Lawinendatensatz ist abrufbar."""
     # Tödliche Lawinenunfälle – bekannter EnviDat-Datensatz
-    result = await ckan_package_search(
-        query='"fatal avalanche" OR "avalanche accidents"', rows=3
-    )
+    result = await ckan_package_search(query='"fatal avalanche" OR "avalanche accidents"', rows=3)
     assert result.get("count", 0) > 0, "Lawinendaten nicht gefunden"
     pkg = result["results"][0]
     assert "name" in pkg
@@ -149,19 +148,20 @@ async def test_pagination() -> None:
 
 # ─── Test-Runner ──────────────────────────────────────────────────────────────
 
+
 async def run_all_tests() -> None:
     tests = [
-        ("Katalog Wildcard-Suche",          test_wildcard_search),
-        ("Volltextsuche 'snow avalanche'",   test_catalog_search),
-        ("Datensatz-Details abrufen",        test_package_show),
-        ("Lawinendaten",                     test_get_avalanche_dataset),
-        ("Walddaten (LFI, Sanasilva)",       test_forest_data),
-        ("Organisations-Liste",              test_organization_list),
-        ("Alle Domänen-Abfragen",            test_domain_queries),
-        ("Räumliche Suche (Kanton ZH)",      test_spatial_search),
-        ("Tag-Liste",                         test_tag_list),
-        ("Datensatz-Formatierung",           test_format_dataset_summary),
-        ("Paginierung",                       test_pagination),
+        ("Katalog Wildcard-Suche", test_wildcard_search),
+        ("Volltextsuche 'snow avalanche'", test_catalog_search),
+        ("Datensatz-Details abrufen", test_package_show),
+        ("Lawinendaten", test_get_avalanche_dataset),
+        ("Walddaten (LFI, Sanasilva)", test_forest_data),
+        ("Organisations-Liste", test_organization_list),
+        ("Alle Domänen-Abfragen", test_domain_queries),
+        ("Räumliche Suche (Kanton ZH)", test_spatial_search),
+        ("Tag-Liste", test_tag_list),
+        ("Datensatz-Formatierung", test_format_dataset_summary),
+        ("Paginierung", test_pagination),
     ]
 
     print("\n" + "=" * 60)
