@@ -14,6 +14,8 @@ from urllib.parse import urlparse
 
 import httpx
 
+from . import __version__
+
 logger = logging.getLogger(__name__)
 
 # ─── Konstanten ───────────────────────────────────────────────────────────────
@@ -125,7 +127,7 @@ def _make_client() -> httpx.AsyncClient:
         base_url=ENVIDAT_API_BASE,
         timeout=REQUEST_TIMEOUT,
         headers={
-            "User-Agent": "wsl-envidat-mcp/0.2.0 (github.com/malkreide/wsl-envidat-mcp)",
+            "User-Agent": f"wsl-envidat-mcp/{__version__} (github.com/malkreide/wsl-envidat-mcp)",
             "Accept": "application/json",
         },
         follow_redirects=False,
