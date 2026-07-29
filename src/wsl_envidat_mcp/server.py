@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import sys
 from datetime import datetime, timezone
 from enum import Enum
@@ -1029,6 +1030,39 @@ async def get_domain_resource(domain: str) -> str:
 # ─── Entry point ──────────────────────────────────────────────────────────────
 
 
+def build_transport_security(host: str, port: int):
+    """Host/Origin allow-list for the HTTP transport (SEC-005, inbound half).
+
+    The SDK leaves DNS-rebinding protection OFF while ``transport_security`` is
+    unset — its own source says "If not specified, disable DNS rebinding
+    protection by default for backwards compatibility". Unset therefore means
+    no Host and no Origin validation at all.
+
+    Returns ``None`` when no allow-list can be derived: a non-loopback bind with
+    no ``MCP_ALLOWED_HOSTS``. The server is then reached under a service or
+    public DNS name this process does not know, and a guessed list would reject
+    every real request with HTTP 421. The caller warns instead.
+    """
+    from mcp.server.transport_security import TransportSecuritySettings
+
+    allowed = [h.strip() for h in os.environ.get("MCP_ALLOWED_HOSTS", "").split(",") if h.strip()]
+    loopback = {f"127.0.0.1:{port}", f"localhost:{port}", f"[::1]:{port}"}
+    if allowed:
+        # Loopback stays reachable for container health checks and debugging.
+        hosts = set(allowed) | loopback
+    elif host in ("127.0.0.1", "localhost", "::1"):
+        hosts = loopback | {f"{host}:{port}"}
+    else:
+        return None
+
+    origins = {f"http://{h}" for h in hosts}
+    return TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=sorted(hosts),
+        allowed_origins=sorted(origins),
+    )
+
+
 def main() -> None:
     """Startet den WSL/EnviDat MCP Server."""
     import os
@@ -1054,6 +1088,16 @@ def main() -> None:
     if transport == "streamable-http":
         mcp.settings.host = host
         mcp.settings.port = port
+        security = build_transport_security(host, port)
+        if security is None:
+            logger.warning(
+                "dns_rebinding_protection_off",
+                host=host,
+                hint="Set MCP_ALLOWED_HOSTS to the hostnames this server is "
+                "reachable under; without it the SDK does not check the Host "
+                "header at all.",
+            )
+        mcp.settings.transport_security = security
         logger.info(
             "server.start",
             transport="streamable-http",
