@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-07-30
+
+### Fixed
+
+- **The User-Agent reports the actual package version again.** The published
+  `0.2.3` sent `wsl-envidat-mcp/0.2.0` to every upstream — the version string was
+  hardcoded and had been left behind by earlier bumps. The version now comes
+  from the package metadata, so it can no longer drift from the package.
+
 ## [0.2.0] - 2026-05-28
 
 ### Breaking changes
