@@ -55,6 +55,13 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
 
+[tool.ruff.lint.per-file-ignores]
+# Diese Tests nehmen src/ zur Laufzeit in sys.path auf und muessen deshalb
+# nach dieser Zeile importieren. E402 laesst sich hier nicht aufloesen, ohne
+# den Import zu brechen.
+"tests/test_20_szenarien.py" = ["E402"]
+"tests/test_integration.py" = ["E402"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]

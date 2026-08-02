@@ -26,43 +26,31 @@ pytestmark = pytest.mark.live
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from wsl_envidat_mcp.api_client import (
-    build_domain_query,
     ckan_organization_list,
-    ckan_organization_show,
     ckan_package_search,
-    ckan_package_show,
-    ckan_tag_list,
-    ckan_status_show,
-    format_dataset_summary,
-    handle_api_error,
-    DOMAIN_KEYWORDS,
-    ENVIDAT_PORTAL,
 )
-
 from wsl_envidat_mcp.server import (
-    _format_search_results,
+    GetDatasetInput,
+    GetOrganizationInput,
+    GetRecentDatasetsInput,
+    ListTagsInput,
     ResponseFormat,
     SearchInput,
-    GetDatasetInput,
-    ListTagsInput,
-    GetRecentDatasetsInput,
     SimpleQueryInput,
-    GetOrganizationInput,
     WSLDomain,
-    wsl_search,
-    wsl_get_dataset,
-    wsl_list_organizations,
-    wsl_get_organization,
-    wsl_list_tags,
-    wsl_get_recent_datasets,
+    get_domain_resource,
+    get_organization_resource,
+    wsl_catalog_stats,
     wsl_get_avalanche_data,
+    wsl_get_dataset,
     wsl_get_forest_data,
     wsl_get_naturgefahren_data,
-    wsl_catalog_stats,
-    get_organization_resource,
-    get_domain_resource,
+    wsl_get_organization,
+    wsl_get_recent_datasets,
+    wsl_list_organizations,
+    wsl_list_tags,
+    wsl_search,
 )
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  SZENARIO 1: Volltextsuche mit JSON-Ausgabe
@@ -164,7 +152,7 @@ async def test_05_all_domains() -> None:
         params = SearchInput(domain=domain, limit=2)
         result = await wsl_search(params)
         assert "Datensätze gefunden" in result, f"Domäne '{domain.value}' liefert keine Treffer"
-    print(f"  ✓ Alle 5 Domänen liefern Ergebnisse")
+    print("  ✓ Alle 5 Domänen liefern Ergebnisse")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -213,7 +201,7 @@ async def test_08_spatial_search_with_query() -> None:
     params = SearchInput(bbox=[5.95, 45.8, 10.5, 47.8], query="permafrost", limit=5)
     result = await wsl_search(params)
     assert "BBox" in result or "Keine Datensätze" in result, "Unerwartete Antwort"
-    print(f"  ✓ Raeumliche Suche CH + 'permafrost': OK")
+    print("  ✓ Raeumliche Suche CH + 'permafrost': OK")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -263,7 +251,7 @@ async def test_11_tags_with_prefix() -> None:
     result = await wsl_list_tags(params)
     assert "Tags" in result
     assert "`" in result, "Tags sollten als Code formatiert sein"
-    print(f"  ✓ Tags mit Präfix 'forest': gefunden")
+    print("  ✓ Tags mit Präfix 'forest': gefunden")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -278,7 +266,7 @@ async def test_12_recent_datasets() -> None:
     result = await wsl_get_recent_datasets(params)
     assert "Zuletzt aktualisierte" in result
     assert "Datensätze gefunden" in result
-    print(f"  ✓ Neueste Datensätze (5): OK")
+    print("  ✓ Neueste Datensätze (5): OK")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -323,7 +311,7 @@ async def test_15_naturgefahren_data() -> None:
     result = await wsl_get_naturgefahren_data(params)
     assert "Naturgefahren" in result
     assert "Datensätze gefunden" in result
-    print(f"  ✓ Naturgefahren: Ergebnisse erhalten")
+    print("  ✓ Naturgefahren: Ergebnisse erhalten")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
