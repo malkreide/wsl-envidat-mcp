@@ -25,13 +25,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from wsl_envidat_mcp.api_client import (
     build_domain_query,
     ckan_organization_list,
-    ckan_organization_show,
     ckan_package_search,
     ckan_package_show,
     ckan_tag_list,
     format_dataset_summary,
 )
-
 
 # ─── Testfälle ────────────────────────────────────────────────────────────────
 
@@ -143,7 +141,7 @@ async def test_pagination() -> None:
     names1 = {p["name"] for p in page1.get("results", [])}
     names2 = {p["name"] for p in page2.get("results", [])}
     assert names1.isdisjoint(names2), "Paginierung: Überlappende Ergebnisse"
-    print(f"  ✓ Paginierung: Seite 1 und 2 überschneiden sich nicht")
+    print("  ✓ Paginierung: Seite 1 und 2 überschneiden sich nicht")
 
 
 # ─── Test-Runner ──────────────────────────────────────────────────────────────
