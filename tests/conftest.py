@@ -15,6 +15,11 @@ import pytest
 
 # src/ ins sys.path aufnehmen für ungebundene Imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# Das eigene Verzeichnis dazu: Dieser conftest wird geladen, bevor pytest
+# tests/ auf den Pfad legt, und `fixture_data` liegt daneben.
+sys.path.insert(0, str(Path(__file__).parent))
+
+from fixture_data import fixture_json  # noqa: E402
 
 from wsl_envidat_mcp.api_client import ENVIDAT_API_BASE  # noqa: E402
 
@@ -60,97 +65,45 @@ def _skip_live_if_api_unreachable(request: pytest.FixtureRequest) -> None:
 
 @pytest.fixture
 def sample_dataset() -> dict[str, Any]:
-    """Ein realistisch geformter CKAN-Package-Eintrag."""
-    return {
-        "name": "fatal-avalanche-accidents-in-switzerland-since-1936-37",
-        "title": "Fatal avalanche accidents in Switzerland since 1936/37",
-        "notes": (
-            "This dataset contains records of fatal avalanche accidents "
-            "in Switzerland reaching back to the winter season 1936/37."
-        ),
-        "metadata_modified": "2024-09-15T08:30:00",
-        "metadata_created": "2017-03-10T11:00:00",
-        "organization": {"name": "slf", "title": "WSL-Institut SLF"},
-        "tags": [
-            {"name": "avalanche"},
-            {"name": "snow"},
-            {"name": "accidents"},
-            {"name": "switzerland"},
-        ],
-        "resources": [
-            {
-                "id": "res-1",
-                "name": "Avalanche accidents CSV",
-                "format": "CSV",
-                "url": "https://www.envidat.ch/dataset/foo/resource/res-1",
-                "size": 102400,
-            },
-        ],
-        "license_title": "Creative Commons Attribution",
-        "extras": [
-            {"key": "authors", "value": "Frank Techel, SLF"},
-            {"key": "publication_year", "value": "2024"},
-        ],
-    }
+    """Ein echter, aufgezeichneter CKAN-Package-Eintrag.
+
+    Die handgeschriebene Vorgaengerin trug 9 Felder — die Quelle liefert 42.
+    Ihre `extras` (`authors`, `publication_year`) gibt es dort nicht, und ihre
+    Tags waren kleingeschrieben, waehrend EnviDat sie in GROSSBUCHSTABEN
+    fuehrt. Herkunft und Datum in tests/fixtures/PROVENANCE.md.
+    """
+    return fixture_json("package_show")["result"]
 
 
 @pytest.fixture
-def sample_search_response(sample_dataset: dict[str, Any]) -> dict[str, Any]:
-    """Eine CKAN package_search-Antwort mit zwei Datensätzen."""
-    second = dict(sample_dataset)
-    second["name"] = "swiss-national-forest-inventory-lfi"
-    second["title"] = "Swiss National Forest Inventory (LFI)"
-    second["organization"] = {"name": "wsl", "title": "WSL"}
-    return {
-        "success": True,
-        "result": {
-            "count": 815,
-            "results": [sample_dataset, second],
-        },
-    }
+def sample_search_response() -> dict[str, Any]:
+    """Eine aufgezeichnete CKAN package_search-Antwort.
+
+    `count` ist der echte Gesamtbestand, nicht die Zahl der enthaltenen
+    Datensaetze — eine Fixture, die den Bestand kleiner behauptet, als er ist,
+    waere genau der Fehler, gegen den das Aufzeichnen angeht.
+    """
+    return fixture_json("package_search")
 
 
 @pytest.fixture
 def sample_orgs_response() -> dict[str, Any]:
-    """Eine CKAN organization_list-Antwort mit zwei Organisationen."""
-    return {
-        "success": True,
-        "result": [
-            {
-                "name": "wsl",
-                "title": "WSL",
-                "description": "Eidg. Forschungsanstalt für Wald, Schnee und Landschaft",
-                "package_count": 500,
-            },
-            {
-                "name": "slf",
-                "title": "WSL-Institut SLF",
-                "description": "Schnee- und Lawinenforschung",
-                "package_count": 120,
-            },
-        ],
-    }
+    """Die aufgezeichnete organization_list-Antwort.
+
+    Die Vorgaengerin nannte «wsl» und «slf» — beide gibt es in EnviDat nicht;
+    `organization_show?id=slf` antwortet mit 404. Die echten Namen sind Slugs
+    wie `avalanche-formation`.
+    """
+    return fixture_json("organization_list")
 
 
 @pytest.fixture
-def sample_org_show_response(sample_dataset: dict[str, Any]) -> dict[str, Any]:
-    """Eine CKAN organization_show-Antwort mit Paket-Liste."""
-    return {
-        "success": True,
-        "result": {
-            "name": "slf",
-            "title": "WSL-Institut SLF",
-            "description": "Schnee- und Lawinenforschung",
-            "package_count": 120,
-            "packages": [sample_dataset],
-        },
-    }
+def sample_org_show_response() -> dict[str, Any]:
+    """Die aufgezeichnete organization_show-Antwort einer echten Organisation."""
+    return fixture_json("organization_show")
 
 
 @pytest.fixture
 def sample_tag_list_response() -> dict[str, Any]:
-    """Eine CKAN tag_list-Antwort."""
-    return {
-        "success": True,
-        "result": ["snow", "snowpack", "snow-depth", "snowmelt"],
-    }
+    """Die aufgezeichnete tag_list-Antwort, in der Schreibweise der Quelle."""
+    return fixture_json("tag_list")

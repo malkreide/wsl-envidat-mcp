@@ -1,0 +1,372 @@
+{
+  "success": true,
+  "result": {
+    "count": 858,
+    "facets": {},
+    "results": [
+      {
+        "author": "[{\"affiliation\": \"MeteoSwiss\", \"affiliation_02\": \"\", \"affiliation_03\": \"\", \"email\": \"Dominik.Bueeler@meteoswiss.ch\", \"given_name\": \"Dominik\", \"identifier\": \"\", \"name\": \"B\\u00fceler\"}, {\"affiliation\": \"EPFL\", \"affiliation_02\": \"\", \"affiliation_03\": \"\", \"email\": \"elizaveta.sharaborova@epfl.ch\", \"given_name\": \"Elizaveta\", \"identifier\": \"\", \"name\": \"Sharaborova\"}, {\"affiliation\": \"ETH\", \"affiliation_02\": \"\", \"affiliation_03\": \"\", \"email\": \"maria.pyrina@env.ethz.ch\", \"given_name\": \"Maria\", \"identifier\": \"\", \"name\": \"Pyrina\"}, {\"affiliation\": \"WSL Institute for Snow and Avalanche Research SLF\", \"affiliation_02\": \"\", \"affiliation_03\": \"\", \"email\": \"jeannette.noetzli@slf.ch\", \"given_name\": \"Jeannette\", \"identifier\": \" 0000-0001-9188-6318\", \"name\": \"Noetzli\"}, {\"affiliation\": \"\\u00c8cole Polytechnique F\\u00e8d\\u00e8rale de Lausanne, Lausanne, Switzerland School of Architecture, Civil and Environmental Engineering, Laboratory of Cryospheric Sciences (CRYOS) and WSL Institute for Snow and Avalanche Research SLF, Davos, Switzerland\", \"affiliation_02\": \"\", \"affiliation_03\": \"\", \"email\": \"lehning@slf.ch\", \"given_name\": \"Michael\", \"identifier\": \"0000-0002-8442-0875\", \"name\": \"Lehning\"}, {\"affiliation\": \"UNIL\", \"affiliation_02\": \"\", \"affiliation_03\": \"\", \"email\": \"daniela.domeisen@unil.ch\", \"given_name\": \"Daniela\", \"identifier\": \"\", \"name\": \"Domeisen\"}]",
+        "author_email": null,
+        "creator_user_id": "6dee90a2-8a48-4f4f-ad64-eb9c60aae87e",
+        "date": "[{\"date\": \"2000-06-20\", \"date_type\": \"created\", \"end_date\": \"2017-01-01\"}, {\"date\": \"2000-06-20\", \"date_type\": \"collected\", \"end_date\": \"2017-01-01\"}]",
+        "doi": "10.16904/envidat.792",
+        "funding": "[{\"grant_number\": \"\", \"institution\": \"Collaborative Research on Science and Society (CROSS) Program of EPFL and UNIL\", \"institution_url\": \"\"}, {\"grant_number\": \"2022.0064\", \"institution\": \"Swiss Government Excellence Scholarship\", \"institution_url\": \"\"}, {\"grant_number\": \"PP00P2\\\\_198896\", \"institution\": \"Swiss National Science Foundation\", \"institution_url\": \"\"}, {\"grant_number\": \"847456\", \"institution\": \"European Research Council (ERC) under the European Union's Horizon 2020 research and innovation programme\", \"institution_url\": \"\"}]",
+        "id": "8c2dcda3-8d82-40cd-b79e-1b4dbe4ac77f",
+        "isopen": true,
+        "language": "en",
+        "license_id": "cc-by",
+        "license_title": "Creative Commons Attribution (CC-BY 4.0)",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "maintainer": "{\"affiliation\": \"\", \"email\": \"elizaveta.sharaborova@epfl.ch\", \"given_name\": \"Elizaveta\", \"identifier\": \"\", \"name\": \"Sharaborova\"}",
+        "maintainer_email": null,
+        "metadata_created": "2026-07-27T14:09:10.207246",
+        "metadata_modified": "2026-08-04T07:19:14.753556",
+        "name": "the-importance-of-hot-summers-and-individual-heatwaves-for-permafrost-warming-an",
+        "notes": "This dataset contains idealized sensitivity simulations performed with the SNOWPACK model to investigate how the timing of summer heat affects ground thermal conditions in alpine permafrost. The simulations demonstrate that late-summer heatwaves lead to greater heat retention in the ground until the following spring than equally warm early-summer events. The dataset supports analyses of the influence of atmospheric heat timing on active-layer heat storage and permafrost thermal evolution.",
+        "num_resources": 1,
+        "num_tags": 6,
+        "organization": {
+          "id": "b2ef52fe-c56a-4973-8309-24837f3848ed",
+          "name": "cryos",
+          "title": "CRYOS",
+          "type": "organization",
+          "description": "CRYOS is the EPFL laboratory of the WSL/SLF - EPFL joint appointment for Prof. Michael Lehning. At his WSL side, Prof. Michael Lehning is head of the research unit \"Snow and Permafrost\" at SLF in Davos.\r\n \r\n###General Mission\r\nThe laboratory of cryospheric sciences investigates the processes that shape snow and ice in mountains and polar regions. In particular, snow cover processes, snow-atmosphere interactions and mountain hydrology are in the focus of current research. This includes a strive for deeper understanding of the complicated mass and energy exchange processes within, above and below a snow cover but also predictions of future snow and ice in mountains and high latitudes. A newer work area is the risk management and optimization in the field of renewable energy production based on our detailed understanding of water, wind and radiation processes in mountains.\r\n\r\nMore information: http://cryos.epfl.ch/",
+          "image_url": "2019-03-26-151807.125593CRYOSLogoFinal.jpg",
+          "created": "2016-11-17T12:24:20.447699",
+          "is_organization": true,
+          "approval_status": "approved",
+          "state": "active"
+        },
+        "owner_org": "b2ef52fe-c56a-4973-8309-24837f3848ed",
+        "private": false,
+        "publication": "{\"publication_year\": \"2026\", \"publisher\": \"EnviDat\"}",
+        "publication_state": "published",
+        "related_datasets": "",
+        "related_publications": "Büeler, D., Sharaborova, E., Pyrina, M., Noetzli, J., Lehning, M., Domeisen, D., The importance of hot summers and individual heatwaves for permafrost in the Swiss Alps, Environmental Research: Climate",
+        "resource_type": "dataset",
+        "resource_type_general": "dataset",
+        "spatial": "{\"type\":\"GeometryCollection\",\"geometries\":[{\"type\":\"Point\",\"coordinates\":[7.834626,46.558292]}]}",
+        "spatial_info": "Switzerland",
+        "state": "active",
+        "subtitle": "",
+        "title": "The importance of hot summers and individual heatwaves for permafrost in the Swiss Alps",
+        "type": "dataset",
+        "url": null,
+        "version": "1.0",
+        "extras": [
+          {
+            "key": "deprecatedResources",
+            "value": "[]"
+          }
+        ],
+        "resources": [
+          {
+            "cache_last_updated": null,
+            "cache_url": null,
+            "created": "2026-07-31T10:53:58.920027",
+            "description": "",
+            "doi": "",
+            "format": "ZIP",
+            "hash": "",
+            "id": "99c43a7e-36eb-411c-8242-edbfde8b5b01",
+            "last_modified": null,
+            "metadata_modified": "2026-07-31T10:53:58.910180",
+            "mimetype": "application/zip",
+            "mimetype_inner": "null",
+            "name": "SNOWPACK_simulations.zip",
+            "package_id": "8c2dcda3-8d82-40cd-b79e-1b4dbe4ac77f",
+            "position": 0,
+            "resource_size": "{\"size_units\":\"kb\",\"size_value\":\"\"}",
+            "resource_type": "null",
+            "restricted": "{\"level\": \"public\", \"allowed_users\": \"\"}",
+            "size": 10004794304,
+            "state": "active",
+            "url": "https://www.envidat.ch/dataset/8c2dcda3-8d82-40cd-b79e-1b4dbe4ac77f/resource/99c43a7e-36eb-411c-8242-edbfde8b5b01/download/snowpack_simulations.zip",
+            "url_type": "upload"
+          }
+        ],
+        "tags": [
+          {
+            "display_name": "ATMOSPHERIC HEATWAVES",
+            "id": "b9f4cfde-4654-4b9a-b56a-53727e709e78",
+            "name": "ATMOSPHERIC HEATWAVES",
+            "state": "active",
+            "vocabulary_id": null
+          },
+          {
+            "display_name": "CLIMATE CHANGE",
+            "id": "7586fd99-56bd-4c44-ace2-14d87ec1dd9b",
+            "name": "CLIMATE CHANGE",
+            "state": "active",
+            "vocabulary_id": null
+          },
+          {
+            "display_name": "HOT SUMMER",
+            "id": "9d70a17a-8a73-481e-8410-2fb43f872213",
+            "name": "HOT SUMMER",
+            "state": "active",
+            "vocabulary_id": null
+          },
+          {
+            "display_name": "MOUNTAIN PERMAFROST",
+            "id": "8e725e8a-8f24-46dc-9e06-043a301766e3",
+            "name": "MOUNTAIN PERMAFROST",
+            "state": "active",
+            "vocabulary_id": null
+          },
+          {
+            "display_name": "SEASONAL VARIABILITY",
+            "id": "743a48be-d976-4b9f-b37b-403a01321d92",
+            "name": "SEASONAL VARIABILITY",
+            "state": "active",
+            "vocabulary_id": null
+          },
+          {
+            "display_name": "SUBSEASONAL VARIABILITY",
+            "id": "df0d653d-1524-4580-92ed-9aaa4eaad29b",
+            "name": "SUBSEASONAL VARIABILITY",
+            "state": "active",
+            "vocabulary_id": null
+          }
+        ],
+        "groups": [],
+        "relationships_as_subject": [],
+        "relationships_as_object": []
+      },
+      {
+        "author": "[{\"given_name\": \"Giovanni\", \"name\": \"Bortolami\", \"email\": \"giovanni.bortolami@epfl.ch\", \"data_credit\": [], \"identifier_scheme\": \"\", \"identifier\": \"https://orcid.org/0000-0001-7528-9644\", \"affiliation\": \"Plant Ecology Research Laboratory, School of Architecture, Civil and Environmental Engineering, EPFL, Lausanne, Switzerland\"}, {\"given_name\": \"Marcus\", \"name\": \"Schaub\", \"email\": \"marcus.schaub@wsl.ch\", \"data_credit\": [], \"identifier_scheme\": \"\", \"identifier\": \"0000-0002-0158-8892\", \"affiliation\": \"Swiss Federal Institute for Forest, Snow, and Landscape WSL, CH-8903, Birmensdorf, Switzerland\"}, {\"given_name\": \"Jonas\", \"name\": \"Gisler\", \"email\": \"jonas.gisler@wsl.ch\", \"data_credit\": [], \"identifier_scheme\": \"\", \"identifier\": \"\", \"affiliation\": \"Swiss Federal Institute for Forest Snow and Landscape Research WSL, Zuercherstrasse 111, 8903 Birmensdorf, Switzerland\"}, {\"given_name\": \"Arianna\", \"name\": \"Milano\", \"email\": \"arianna.milano@epfl.ch\", \"data_credit\": [], \"identifier_scheme\": \"\", \"identifier\": \"\", \"affiliation\": \"EPFL\"}, {\"given_name\": \"Christoph\", \"name\": \"Bachofen\", \"email\": \"christoph.bachofen@wsl.ch\", \"data_credit\": [], \"identifier_scheme\": \"\", \"identifier\": \"0000-0002-5269-0299\", \"affiliation\": \"WSL\"}, {\"given_name\": \"Janisse\", \"name\": \"Deluigi\", \"email\": \"janisse.deluigi@wsl.ch\", \"data_credit\": [], \"identifier_scheme\": \"\", \"identifier\": \"0000-0002-6547-4085\", \"affiliation\": \"EPFL-WSL Lausanne\"}, {\"given_name\": \"Patrick\", \"name\": \"Favre\", \"email\": \"favrepatrick@bluewin.ch\", \"data_credit\": [], \"identifier_scheme\": \"\", \"identifier\": \"\", \"affiliation\": \"Plant Ecology Research Laboratory, School of Architecture, Civil and Environmental Engineering, EPFL, Lausanne, Switzerland\"}, {\"given_name\": \"Katrin\", \"name\": \"Meusburger\", \"email\": \"katrin.meusburger@wsl.ch\", \"data_credit\": [], \"identifier_scheme\": \"\", \"identifier\": \"0000-0003-4623-6249\", \"affiliation\": \"Forest Soils and Biogeochemistry, Swiss Federal Institute for Forest, Snow and Landscape Research WSL, Birmensdorf, Switzerland\"}, {\"given_name\": \"Arthur\", \"name\": \"Gessler\", \"email\": \"arthur.gessler@wsl.ch\", \"data_credit\": [], \"identifier_scheme\": \"\", \"identifier\": \"0000-0002-1910-9589\", \"affiliation\": \"Swiss Federal Institute for Forest Snow and Landscape Research WSL, Zuercherstrasse 111, 8903 Birmensdorf, Switzerland\"}, {\"given_name\": \"Stefan\", \"name\": \"Hunziker\", \"email\": \"stefan.hunziker@wsl.ch\", \"identifier\": \"0000-0001-6900-5684\", \"affiliation\": \"Forest and Soil Ecology, Swiss Federal Institute for Forest, Snow, and Landscape Research WSL, CH-8903, Birmensdorf, Switzerland\"}, {\"given_name\": \"Daniel\", \"name\": \"K\\u00fckenbrink\", \"email\": \"daniel.kuekenbrink@wsl.ch\", \"data_credit\": [], \"identifier_scheme\": \"\", \"identifier\": \"0000-0003-3083-640X\", \"affiliation\": \"WSL\"}, {\"given_name\": \"Alyssa\", \"name\": \"Kullberg\", \"email\": \"alyssa.kullberg@wsl.ch\", \"data_credit\": [], \"identifier_scheme\": \"\", \"identifier\": \"https://orcid.org/0000-0002-1521-439X\", \"affiliation\": \"Swiss Federal Institute for Forest, Snow, and Landscape WSL, CH-8903, Birmensdorf, Switzerland\"}, {\"given_name\": \"Mauro\", \"name\": \"Marty\", \"email\": \"mauro.marty@wsl.ch\", \"data_credit\": [], \"identifier_scheme\": \"\", \"identifier\": \"0000-0002-0943-2454\", \"affiliation\": \"Remote Sensing, Landscape Change Science, Swiss Federal Institute for Forest, Snow and Landscape Research WSL, 8903 Birmensdorf, Switzerland\"}, {\"given_name\": \"Richard L.\", \"name\": \"Peters\", \"email\": \"richard.peters@tum.de\", \"data_credit\": [], \"identifier_scheme\": \"\", \"identifier\": \"\", \"affiliation\": \"Tree Growth and Wood Physiology, School of Life Sciences, Technical University of Munich, Germany\"}, {\"given_name\": \"Alvaro\", \"name\": \"Poretti\", \"email\": \"alvaro.poretti@wsl.ch\", \"data_credit\": [], \"identifier_scheme\": \"\", \"identifier\": \"\", \"affiliation\": \"Swiss Federal Institute for Forest, Snow, and Landscape WSL, CH-8903, Birmensdorf, Switzerland\"}, {\"given_name\": \"Philipp\", \"name\": \"Schuler\", \"email\": \"philipp.schuler@wsl.ch\", \"data_credit\": [], \"identifier_scheme\": \"\", \"identifier\": \"\", \"affiliation\": \"WSL\"}, {\"given_name\": \"Volodymyr\", \"name\": \"Trotsiuk\", \"email\": \"volodymyr.trotsiuk@wsl.ch\", \"data_credit\": [], \"identifier_scheme\": \"\", \"identifier\": \"0000-0002-8363-656X\", \"affiliation\": \"Swiss Federal Institute for Forest, Snow and Landscape Research WSL, Birmensdorf, Switzerland\"}, {\"given_name\": \"Helena\", \"name\": \"Vallicrosa\", \"email\": \"helena.vallicrosa@epfl.ch\", \"identifier\": \"0000-0002-5860-3096\", \"affiliation\": \"Plant Ecology Research Laboratory PERL, School of Architecture, Civil and Environmental Engineering ENAC, EPFL, CH-1015 Lausanne, Switzerland\"}, {\"given_name\": \"Roman\", \"name\": \"Zweifel\", \"email\": \"roman.zweifel@wsl.ch\", \"data_credit\": [], \"identifier_scheme\": \"\", \"identifier\": \"0000-0001-9438-0582\", \"affiliation\": \"WSL\"}, {\"given_name\": \"Charlotte\", \"name\": \"Grossiord\", \"email\": \"charlotte.grossiord@epfl.ch\", \"data_credit\": [], \"identifier_scheme\": \"\", \"identifier\": \"0000-0002-9113-3671\", \"affiliation\": \"Swiss Federal Institute for Forest, Snow and Landscape Research WSL, Birmensdorf, Switzerland\"}]",
+        "author_email": null,
+        "creator_user_id": "fab420e5-642f-4b09-be64-7e89ec85bcf2",
+        "date": "[{\"date_type\":\"created\",\"date\":\"2024-04-01\",\"end_date\":\"2026-07-22\"},{\"date_type\":\"collected\",\"date\":\"2024-04-01\",\"end_date\":\"2024-09-30\"}]",
+        "doi": "10.16904/envidat.790",
+        "funding": "[{\"institution\":\"Swiss National Science Foundation (SNSF)\",\"grant_number\":\"206021_213382/1\",\"institution_url\":\"\"},{\"institution\":\"Swiss National Science Foundation (SNSF)\",\"grant_number\":\"3200-0-239978\",\"institution_url\":\"\"}]",
+        "id": "19c270cb-d470-4bf6-b527-90c1b44040e8",
+        "isopen": true,
+        "license_id": "cc-by",
+        "license_title": "Creative Commons Attribution (CC-BY 4.0)",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "maintainer": "{\"email\":\"giovanni.bortolami@wsl.ch\",\"given_name\":\"Giovanni\",\"name\":\"Bortolami\"}",
+        "maintainer_email": null,
+        "metadata_created": "2026-07-22T13:59:03.377941",
+        "metadata_modified": "2026-08-03T12:54:24.157115",
+        "name": "dataset-for-canopy-scale-vpd-reduction-in-a-mature-forest-alters-stomatal-respon",
+        "notes": "This is the dataset used to generate the analyses (statistical tests and figures) for the article \"Canopy-scale VPD reduction in a mature forest alters stomatal response to soil drought in Pinus sylvestris L.\".\nThe data are already filtered as specified in the material and method sections of the related article.",
+        "num_resources": 4,
+        "num_tags": 11,
+        "organization": {
+          "id": "d96608bb-c414-4dd2-bd8b-a4fe4ed114aa",
+          "name": "functional-plant-ecology",
+          "title": "Functional Plant Ecology",
+          "type": "organization",
+          "description": "Our research group aims to better understand the physiological and ecological responses of terrestrial ecosystems to global change, with a focus on anticipating and counteracting its effects.\r\n\r\nOur key research themes are the impact of biodiversity loss on ecosystem functions and services, as well as the physiological processes of plant responses to climatic constraints such as drought and increasing temperatures and VPD.\r\n\r\nWe use novel techniques and approaches at scales going from the cell to the whole ecosystem in diverse environmental conditions in temperate, Mediterranean and tropical systems. We conduct research in controlled conditions (e.g., greenhouses and growth chambers), in manipulative experiments in natural ecosystems (e.g., drought and temperature manipulation) and use long-term national and international inventory platforms. \r\n\r\nThis integrative approach has both theoretical and applied aims to address the parameterization of climate-vegetation models and guide new climate-smart management practices.",
+          "image_url": "https://www.hpc-ch.org/wp-content/uploads/2013/01/WSL-logo.png",
+          "created": "2021-05-12T16:07:05.873587",
+          "is_organization": true,
+          "approval_status": "approved",
+          "state": "active"
+        },
+        "owner_org": "d96608bb-c414-4dd2-bd8b-a4fe4ed114aa",
+        "private": false,
+        "publication": "{\"publisher\":\"EnviDat\",\"publication_year\":\"2026\"}",
+        "publication_state": "published",
+        "resource_type": "dataset",
+        "resource_type_general": "dataset",
+        "spatial": "{\"type\":\"GeometryCollection\",\"geometries\":[{\"type\":\"Point\",\"coordinates\":[7.6123,46.304055]}]}",
+        "state": "active",
+        "subtitle": "",
+        "title": "Dataset for \"Canopy-scale VPD reduction in a mature forest alters stomatal response to soil drought in Pinus sylvestris L.\"",
+        "type": "dataset",
+        "url": null,
+        "version": "double-blind",
+        "extras": [
+          {
+            "key": "deprecatedResources",
+            "value": "[\"ef62dbd2-b9ae-4d80-bf07-1117a3c121a4\"]"
+          }
+        ],
+        "resources": [
+          {
+            "cache_last_updated": null,
+            "cache_url": null,
+            "created": "2026-07-22T14:25:00",
+            "description": "Whole plant physiological data collected at 60' resolution in individual trees (indicated with tree_number, scaffold and treatment): GS (whole-plant canopy conductance), E (whole-plant transpiration), TWDnorm ( normalized tree water deficit), pump_active (TRUE or FALSE, indicates if the VPD reduction system was active or not), max_wp (daily pre-dawn water potential computed with TWDnorm interpolation), tot_fl (total sap flow), crown_area_full (projected canopy area), and the corresponding environmental variables (VPD, PPFD, RH, Tair, soil mp) for the same timestamp.",
+            "doi": "",
+            "format": "CSV",
+            "hash": "",
+            "id": "0586e734-aa61-4616-8caa-ff51b3eb7219",
+            "last_modified": "2026-07-22T16:33:34.952000",
+            "metadata_modified": "2026-07-22T14:33:35.311131",
+            "mimetype": "text/csv",
+            "mimetype_inner": "null",
+            "name": "file2_physiological_60min.csv",
+            "package_id": "19c270cb-d470-4bf6-b527-90c1b44040e8",
+            "position": 0,
+            "resource_size": "{\"size_value\":\"17.51\",\"size_units\":\"mb\"}",
+            "resource_type": "null",
+            "restricted": "{\"level\": \"public\", \"allowed_users\": \"\"}",
+            "size": 18360566,
+            "state": "active",
+            "url": "https://www.envidat.ch/dataset/19c270cb-d470-4bf6-b527-90c1b44040e8/resource/0586e734-aa61-4616-8caa-ff51b3eb7219/download/file2_physiological_60min.csv",
+            "url_type": "upload"
+          },
+          {
+            "cache_last_updated": null,
+            "cache_url": null,
+            "created": "2026-07-22T14:06:00",
+            "description": "leaf level gas exchange data collected during monthly campaigns at the tree individual level (identified by their number, scaffold number, treatment), for every record: VPD (kPa), stomatal conductance gs (mol m-2 s-1), CO2 assimilation (umol m-2 s-1), PPFD (umol m-2 s-1), transpiration (mol m-2 s-1) ",
+            "doi": "",
+            "format": "CSV",
+            "hash": "",
+            "id": "9e771a03-7aba-4b04-aa4a-51b03ecf564b",
+            "last_modified": "2026-07-22T16:13:00",
+            "metadata_modified": "2026-07-22T14:33:35.311236",
+            "mimetype": "text/csv",
+            "mimetype_inner": "null",
+            "name": "file4_leaf_gas_exchange.csv",
+            "package_id": "19c270cb-d470-4bf6-b527-90c1b44040e8",
+            "position": 1,
+            "resource_size": "{\"size_value\":\"175.38\",\"size_units\":\"kb\"}",
+            "resource_type": "null",
+            "restricted": "{\"level\": \"public\", \"allowed_users\": \"\"}",
+            "size": 179589,
+            "state": "active",
+            "url": "https://www.envidat.ch/dataset/19c270cb-d470-4bf6-b527-90c1b44040e8/resource/9e771a03-7aba-4b04-aa4a-51b03ecf564b/download/file4_leaf_gas_exchange.csv",
+            "url_type": "upload"
+          },
+          {
+            "cache_last_updated": null,
+            "cache_url": null,
+            "created": "2026-07-22T13:59:00",
+            "description": "environmental data collected at 10' resolution at the different experimental plots, indicated with the scaffold_n and treatment: VPD (kPa), PPFD (umol m-2 s-1), RH (%), Tair (°C), soil mp at -80cm (kPa), soil mp at -120cm (kPa).",
+            "doi": "",
+            "format": "CSV",
+            "hash": "",
+            "id": "d4b2c5be-f185-4745-b363-a8f06964110e",
+            "last_modified": "2026-07-22T16:02:00",
+            "metadata_modified": "2026-07-22T14:33:35.311305",
+            "mimetype": "text/csv",
+            "mimetype_inner": "null",
+            "name": "file1_environmental_10min.csv",
+            "package_id": "19c270cb-d470-4bf6-b527-90c1b44040e8",
+            "position": 2,
+            "resource_size": "{\"size_value\":\"22.18\",\"size_units\":\"mb\"}",
+            "resource_type": "null",
+            "restricted": "{\"level\": \"public\", \"allowed_users\": \"\"}",
+            "size": 23257416,
+            "state": "active",
+            "url": "https://www.envidat.ch/dataset/19c270cb-d470-4bf6-b527-90c1b44040e8/resource/d4b2c5be-f185-4745-b363-a8f06964110e/download/file1_environmental_10min.csv",
+            "url_type": "upload"
+          },
+          {
+            "cache_last_updated": null,
+            "cache_url": null,
+            "created": "2026-07-22T14:05:00",
+            "description": "leaf water potential data (bar) collected during monthly campaigns at the tree individual level",
+            "doi": "",
+            "format": "CSV",
+            "hash": "",
+            "id": "03cff295-9bf2-43f5-a35a-f141b7f96f05",
+            "last_modified": "2026-07-22T16:06:00",
+            "metadata_modified": "2026-07-22T14:33:35.311369",
+            "mimetype": "text/csv",
+            "mimetype_inner": "null",
+            "name": "file3_water_potential_bar.csv",
+            "package_id": "19c270cb-d470-4bf6-b527-90c1b44040e8",
+            "position": 3,
+            "resource_size": "{\"size_value\":\"56.06\",\"size_units\":\"kb\"}",
+            "resource_type": "null",
+            "restricted": "{\"level\": \"public\", \"allowed_users\": \"\"}",
+            "size": 57405,
+            "state": "active",
+            "url": "https://www.envidat.ch/dataset/19c270cb-d470-4bf6-b527-90c1b44040e8/resource/03cff295-9bf2-43f5-a35a-f141b7f96f05/download/file3_water_potential_bar.csv",
+            "url_type": "upload"
+          }
+        ],
+        "tags": [
+          {
+            "display_name": "ATMOSPHERIC DROUGHT",
+            "id": "5cbd816f-410e-43bb-b5ee-9c576a428b1c",
+            "name": "ATMOSPHERIC DROUGHT",
+            "state": "active",
+            "vocabulary_id": null
+          },
+          {
+            "display_name": "DATASET",
+            "id": "07c0ddac-52a6-4ea1-a7de-325ee95597ab",
+            "name": "DATASET",
+            "state": "active",
+            "vocabulary_id": null
+          },
+          {
+            "display_name": "PFYNWALD",
+            "id": "a64b32a3-f62d-42e3-a216-7edf41398b0a",
+            "name": "PFYNWALD",
+            "state": "active",
+            "vocabulary_id": null
+          },
+          {
+            "display_name": "SCOTS PINE",
+            "id": "fe15d3e6-beb5-45e7-b032-e5d7452aae19",
+            "name": "SCOTS PINE",
+            "state": "active",
+            "vocabulary_id": null
+          },
+          {
+            "display_name": "SOIL DROUGHT",
+            "id": "b4ce3e8a-3b5a-4ea4-8d3d-17b995f42642",
+            "name": "SOIL DROUGHT",
+            "state": "active",
+            "vocabulary_id": null
+          },
+          {
+            "display_name": "STOMATA",
+            "id": "bd8434c5-a477-4188-b7a8-71b180a8b6b4",
+            "name": "STOMATA",
+            "state": "active",
+            "vocabulary_id": null
+          },
+          {
+            "display_name": "TRANSPIRATION",
+            "id": "01453fa5-0f9a-404e-a830-4d25edc50d43",
+            "name": "TRANSPIRATION",
+            "state": "active",
+            "vocabulary_id": null
+          },
+          {
+            "display_name": "TREE-WATER-DEFICIT",
+            "id": "7c2658f7-8791-4891-8844-13f7c7a61449",
+            "name": "TREE-WATER-DEFICIT",
+            "state": "active",
+            "vocabulary_id": null
+          },
+          {
+            "display_name": "VPDROUGHT",
+            "id": "e8b13462-b140-4bde-936f-63cb247262dc",
+            "name": "VPDROUGHT",
+            "state": "active",
+            "vocabulary_id": null
+          },
+          {
+            "display_name": "WATER POTENTIAL",
+            "id": "36816274-62db-4582-bdd9-284885b92b70",
+            "name": "WATER POTENTIAL",
+            "state": "active",
+            "vocabulary_id": null
+          },
+          {
+            "display_name": "WHOLE-CANOPY CONDUCTANCE",
+            "id": "d8ae651f-f1a4-4179-ba60-598105f589dc",
+            "name": "WHOLE-CANOPY CONDUCTANCE",
+            "state": "active",
+            "vocabulary_id": null
+          }
+        ],
+        "groups": [],
+        "relationships_as_subject": [],
+        "relationships_as_object": []
+      }
+    ],
+    "sort": "score desc, metadata_modified desc",
+    "search_facets": {}
+  }
+}

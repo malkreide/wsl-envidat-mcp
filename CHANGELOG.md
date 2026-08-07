@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Hinzugefuegt — die Fixtures sind aufgezeichnet, nicht mehr ausgedacht
+
+**`scripts/record_fixtures.py`** zeichnet fuenf CKAN-Antworten von
+`www.envidat.ch` auf und schreibt `tests/fixtures/*` samt `PROVENANCE.md` mit
+Quelle, **Aufzeichnungsdatum**, Auswahlregel und SHA-256 je Datei. Ohne Datum
+ist «aufgezeichnet» nach zwei Jahren von «ausgedacht» nicht mehr zu
+unterscheiden.
+
+**Was der Wechsel aufgedeckt hat — drei Befunde an den Fixtures:**
+
+1. **Die Organisationen `wsl` und `slf` gibt es nicht.**
+   `organization_show?id=slf` antwortet mit **HTTP 404**. EnviDat fuehrt 25
+   Organisationen mit Slugs wie `avalanche-formation` oder
+   `alpine-mass-movements`. Folgenlos, weil der Produktivcode keine
+   Organisationsnamen fest verdrahtet — die Domaenen laufen ueber Stichwoerter
+   —, aber erfunden war es trotzdem.
+
+2. **Tags stehen in GROSSBUCHSTABEN.** Die Fixture hatte `snow`, `snowpack`;
+   die Quelle liefert `SNOW COVER`, `SNOW DEPTH DISTRIBUTION`. Nachgeprueft und
+   ausdruecklich **kein** Recall-Problem: Die Tag-*Suche* ist upstream
+   case-insensitiv (`avalanche`, `AVALANCHE`, `Avalanche` liefern je 37
+   Treffer) — nur die ausgelieferten *Werte* sind es nicht.
+
+3. **Ein Datensatz hat 42 Felder, die Fixture hatte 9** — und ihre `extras`
+   (`authors`, `publication_year`) gibt es in der Quelle nicht; dort steht nur
+   `deprecatedResources`. Auch das folgenlos: Der Code liest die Package-
+   `extras` gar nicht, `extras` ist bei ihm ein Request-Parameter.
+
+Die Gesamtzahl der Datensaetze stand als `815` in der Fixture; gemessen sind es
+**858**. Solche Zahlen werden jetzt durchgehend **aus der Fixture abgeleitet**
+statt hingeschrieben.
+
+**Kein Befund am Produktivcode.** Wie in `zurich-opendata-mcp`,
+`swiss-statistics-mcp` und `meteoswiss-mcp` hat das Aufzeichnen hier nichts
+Kaputtes freigelegt.
+
+**Zur Gegenprobe, ausdruecklich:** Abgeleitete Erwartungen lassen sich **nicht**
+durch Verbiegen der Fixture pruefen — sie wandern mit. Gegengeprueft wurde
+deshalb am Code: Gibt der Server die *gezeigte* statt der *gefundenen* Zahl aus
+(genau der Fehler, den Regel 1 beschreibt — eine Teilmenge als Gesamtmenge),
+faellt `test_wsl_search_query_markdown`.
+
+Der Rahmen dazu steht im Skill [`mcp-data-fidelity`](https://github.com/malkreide/mcp-data-fidelity-skill)
+unter Regel 5 und im Katalog-Check `OPS-009`.
+
+
 ## [0.2.5] - 2026-08-02
 
 ### Fixed
