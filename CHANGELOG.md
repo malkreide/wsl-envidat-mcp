@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Eine Strukturänderung von EnviDat wurde zu einem leeren Ergebnis.**
+  `_parse_response` holte den CKAN-Block mit `data.get("result", {})`. Fällt
+  `result` weg oder wandert es — weil die Quelle ihre Antwort umbaut oder die
+  Aktion nie richtig war —, dann gelang der Tool-Call, die Antwort war leer, und
+  für das Modell war das nicht von «EnviDat kennt diesen Datensatz nicht» zu
+  unterscheiden. Ein Ausfall, der wie eine Antwort aussieht.
+
+  `result` wird jetzt bestätigt statt gedefaultet und wirft sonst einen eigenen
+  Typ, `UpstreamSchemaError`. Die Meldung nennt die **tatsächlich vorhandenen**
+  Schlüssel — die Antwort enthält sie, sie zu verschweigen wäre eine
+  Entscheidung gegen die Diagnose — und sagt ausdrücklich, dass dies keine
+  Leermenge ist. Der Typ erbt von `ValueError`, damit `handle_api_error` ihn
+  weiterhin als API-Fehler formatiert statt als «Unerwarteter Fehler».
+
+  Ein echter CKAN-Fehler (`success: false`) bleibt ein `ValueError` und wird
+  **nicht** zum Strukturfehler: Dort hat die Quelle geantwortet und Nein gesagt,
+  hier hat sie sich geändert, und die Behebung ist eine andere.
+
+  Gefunden im Portfolio-Durchlauf zu
+  [`FID-006`](https://github.com/malkreide/mcp-audit-skill/blob/main/checks/FID-006.md)
+  am 2026-08-07. Acht Server im Portfolio sprechen mit CKAN, alle acht prüfen
+  das `success`-Envelope — und sieben holten `result` danach mit einem stillen
+  Default.
+
+- **Der Rückgabetyp von `_parse_response` war falsch, und der Default doppelt.**
+  Annotiert war `dict[str, Any]`; `organization_list` und `tag_list` liefern
+  eine Liste. Für diese beiden Aktionen war der Ersatzwert `{}` nicht einmal vom
+  richtigen Typ — dieselbe Zeile erzeugte also zwei Fehler. Jetzt `Any`, mit der
+  Begründung im Docstring.
+
 ## [0.2.5] - 2026-08-02
 
 ### Fixed

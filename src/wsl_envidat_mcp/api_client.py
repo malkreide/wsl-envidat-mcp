@@ -134,14 +134,47 @@ def _make_client() -> httpx.AsyncClient:
     )
 
 
-def _parse_response(response: httpx.Response, action: str) -> dict[str, Any]:
-    """Parst eine CKAN-API-Antwort und wirft bei Fehlern eine Exception."""
+class UpstreamSchemaError(ValueError):
+    """Die Antwort kam an, sieht aber anders aus, als der Code sie liest.
+
+    Erbt von ``ValueError``, damit ``handle_api_error`` sie weiterhin als
+    API-Fehler formatiert statt als "Unerwarteter Fehler" — und trotzdem von
+    einem echten CKAN-Fehler unterscheidbar bleibt, denn die Behebung ist eine
+    andere: Bei einem CKAN-Fehler hat die Quelle geantwortet, hier hat sie sich
+    geändert.
+    """
+
+
+def _parse_response(response: httpx.Response, action: str) -> Any:
+    """Parst eine CKAN-API-Antwort und wirft bei Fehlern eine Exception.
+
+    Der Rückgabetyp ist ``Any`` und nicht ``dict``: ``organization_list`` und
+    ``tag_list`` liefern eine Liste. Die alte Annotation war falsch, und der
+    alte Default ``{}`` war es doppelt — für diese beiden Aktionen war der
+    Ersatzwert nicht einmal vom richtigen Typ.
+
+    ``result`` wird bestätigt statt gedefaultet (FID-006). Ein
+    ``.get("result", {})`` macht aus jeder Strukturänderung ein gültiges leeres
+    Ergebnis, und für das Modell ist das nicht von "die Quelle kennt das nicht"
+    zu unterscheiden.
+    """
     response.raise_for_status()
     data = response.json()
+    if not isinstance(data, dict):
+        raise UpstreamSchemaError(
+            f"CKAN '{action}': Antwort ist {type(data).__name__} und kein Objekt. "
+            "Erwartet wird die CKAN-Hülle mit 'success' und 'result'."
+        )
     if not data.get("success"):
         error = data.get("error", {})
         raise ValueError(f"CKAN API Fehler bei '{action}': {error}")
-    return data.get("result", {})
+    if "result" not in data:
+        raise UpstreamSchemaError(
+            f"CKAN '{action}': Antwort ohne 'result'. Vorhandene Schlüssel: "
+            f"{sorted(data)}. Das ist keine Leermenge — die Struktur der Quelle "
+            "hat sich geändert oder die Aktion war nie richtig."
+        )
+    return data["result"]
 
 
 def handle_api_error(e: Exception, context: str = "") -> str:
