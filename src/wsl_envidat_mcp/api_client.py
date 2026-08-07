@@ -177,6 +177,31 @@ def _parse_response(response: httpx.Response, action: str) -> Any:
     return data["result"]
 
 
+def ckan_results(result: object) -> list:
+    """Die Trefferliste eines bestaetigten ``result``-Blocks, oder laut scheitern.
+
+    Der Fix vom 2026-08-07 bestaetigte ``result`` und hoerte dort auf. Die Ebene
+    darunter blieb offen: ``result.get("results", [])`` in den Formatierern
+    machte aus einer Strukturaenderung weiterhin «0 Datensaetze gefunden» —
+    dieselbe Antwort wie eine korrekte Suche ohne Treffer (FID-006).
+
+    CKAN liefert ``results`` und ``count`` bei ``package_search`` immer, auch
+    bei null Treffern. Bestaetigt wird die Anwesenheit, nicht der Inhalt.
+    """
+    if not isinstance(result, dict):
+        raise UpstreamSchemaError(
+            f"CKAN 'package_search': `result` ist {type(result).__name__} und kein Objekt."
+        )
+    missing = [f for f in ("results", "count") if f not in result]
+    if missing:
+        raise UpstreamSchemaError(
+            f"CKAN 'package_search': `result` ohne {missing}. Vorhandene "
+            f"Schluessel: {sorted(result)}. CKAN liefert 'results' und 'count' "
+            "auch bei null Treffern — dies ist keine leere Suche."
+        )
+    return result["results"]
+
+
 def handle_api_error(e: Exception, context: str = "") -> str:
     """Gibt eine einheitliche, hilfreiche Fehlermeldung zurück."""
     prefix = f"[{context}] " if context else ""

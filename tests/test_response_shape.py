@@ -31,6 +31,7 @@ from wsl_envidat_mcp.api_client import (  # noqa: E402
     UpstreamSchemaError,
     ckan_organization_list,
     ckan_package_search,
+    ckan_results,
     ckan_tag_list,
     handle_api_error,
 )
@@ -144,3 +145,53 @@ def test_handle_api_error_still_formats_the_new_type():
     text = handle_api_error(UpstreamSchemaError("Antwort ohne 'result'."), "suche")
     assert "Unerwarteter Fehler" not in text
     assert "Antwort ohne 'result'." in text
+
+
+# --- Die Ebene unter `result` ------------------------------------------------
+
+
+class TestCkanResults:
+    """Der Rest, den der Fix vom 2026-08-07 offen liess.
+
+    Damals wurde `result` bestaetigt und dort aufgehoert. Die Formatierer lasen
+    danach weiter `result.get("results", [])`, und eine Strukturaenderung eine
+    Ebene tiefer ergab weiterhin «0 Datensaetze gefunden» — dieselbe Antwort wie
+    eine korrekte Suche ohne Treffer.
+
+    Dass ein Fix die eigene Ebene bestaetigt und die naechste offen laesst, ist
+    die haeufigste Form dieses Fehlers: Er wandert nach unten statt zu
+    verschwinden.
+    """
+
+    def test_a_result_without_results_is_rejected(self):
+        with pytest.raises(UpstreamSchemaError) as excinfo:
+            ckan_results({"count": 0, "sort": "score desc"})
+        message = str(excinfo.value)
+        assert "'sort'" in message, message
+        assert "keine leere Suche" in message
+
+    def test_a_result_without_count_is_rejected(self):
+        with pytest.raises(UpstreamSchemaError):
+            ckan_results({"results": []})
+
+    def test_a_non_object_result_is_rejected(self):
+        with pytest.raises(UpstreamSchemaError) as excinfo:
+            ckan_results(["a", "b"])
+        assert "list" in str(excinfo.value)
+
+    def test_an_empty_search_still_passes(self):
+        """Die Gegenrichtung: `count: 0` ist eine Aussage der Quelle."""
+        assert ckan_results({"count": 0, "results": []}) == []
+
+    def test_a_normal_search_still_passes(self):
+        rows = [{"name": "a"}]
+        assert ckan_results({"count": 1, "results": rows}) == rows
+
+    def test_both_read_sites_use_the_helper(self):
+        """Zwei Lesestellen; eine zu vergessen halbiert die Zusage still."""
+        from pathlib import Path
+
+        source = Path(__file__).parent.parent / "src" / "wsl_envidat_mcp" / "server.py"
+        body = source.read_text(encoding="utf-8")
+        assert body.count("ckan_results(result)") == 2
+        assert 'result.get("results", [])' not in body
