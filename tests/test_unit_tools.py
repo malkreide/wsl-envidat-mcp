@@ -16,6 +16,7 @@ from typing import Any
 import httpx
 import pytest
 import respx
+from fixture_data import fixture_json
 from mcp.server.mcpserver.exceptions import ToolError
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -63,8 +64,13 @@ async def test_wsl_search_query_markdown(
     out = await wsl_search(SearchInput(query="snow avalanche", limit=5))
 
     assert "«snow avalanche»" in out
-    assert "Fatal avalanche accidents" in out
-    assert "815 Datensätze gefunden" in out
+    # Aus der Fixture abgeleitet statt hingeschrieben: Titel und Gesamtzahl
+    # kommen aus der aufgezeichneten Antwort. Eine feste Zahl waere beim
+    # naechsten Aufzeichnen falsch, ohne dass sich etwas Geprueftes geaendert
+    # haette.
+    _res = fixture_json("package_search")["result"]
+    assert _res["results"][0]["title"][:24] in out
+    assert f"{_res['count']} Datensätze gefunden" in out
 
 
 @respx.mock
@@ -77,14 +83,17 @@ async def test_wsl_search_json_includes_ogd_attribution(
 
     out = await wsl_search(SearchInput(query="forest", response_format=ResponseFormat.JSON))
     parsed = json.loads(out)
-    assert parsed["total_found"] == 815
+    assert parsed["total_found"] == fixture_json("package_search")["result"]["count"]
     assert len(parsed["datasets"]) == 2
     # CH-004: OGD-Attribution-Felder in jedem JSON-Output
     assert "EnviDat" in parsed["source"]
     assert parsed["provenance"] == "live_api"
     assert parsed["license"]
     assert parsed["retrieved_at"]
-    assert parsed["datasets"][0]["license"] == "Creative Commons Attribution"
+    assert (
+        parsed["datasets"][0]["license"]
+        == fixture_json("package_search")["result"]["results"][0]["license_title"]
+    )
 
 
 @respx.mock
@@ -191,9 +200,9 @@ async def test_wsl_get_dataset_markdown(sample_dataset: dict[str, Any]) -> None:
     respx.get(f"{ENVIDAT_API_BASE}/package_show").mock(return_value=_ok(sample_dataset))
 
     out = await wsl_get_dataset(GetDatasetInput(id_or_slug=sample_dataset["name"]))
-    assert "Fatal avalanche accidents" in out
+    assert sample_dataset["title"][:24] in out
     assert sample_dataset["name"] in out
-    assert "Creative Commons Attribution" in out
+    assert sample_dataset["license_title"] in out
     assert "## Ressourcen" in out
 
 
@@ -243,8 +252,11 @@ async def test_wsl_list_organizations(
 
     out = await wsl_list_organizations()
     assert "WSL-Forschungseinheiten" in out
-    assert "WSL-Institut SLF" in out
-    assert "`slf`" in out
+    # Erste Organisation aus der aufgezeichneten Liste — die Vorgaengerin nannte
+    # «wsl» und «slf», die es in EnviDat gar nicht gibt.
+    _org = fixture_json("organization_list")["result"][0]
+    assert _org["title"] in out
+    assert f"`{_org['name']}`" in out
 
 
 # ─── Tool 6: wsl_get_organization ────────────────────────────────────────────
@@ -258,8 +270,9 @@ async def test_wsl_get_organization(
         return_value=httpx.Response(200, json=sample_org_show_response)
     )
 
-    out = await wsl_get_organization(GetOrganizationInput(name="slf"))
-    assert "WSL-Institut SLF" in out
+    _org = fixture_json("organization_show")["result"]
+    out = await wsl_get_organization(GetOrganizationInput(name=_org["name"]))
+    assert _org["title"] in out
     assert "Datensätze" in out
 
 
@@ -276,8 +289,9 @@ async def test_wsl_list_tags_with_query(
 
     out = await wsl_list_tags(ListTagsInput(query="snow", limit=10))
     assert "«snow»" in out
-    assert "snow" in out
-    assert "snowpack" in out
+    # EnviDat fuehrt Tags in GROSSBUCHSTABEN; die erfundene Fixture hatte sie
+    # kleingeschrieben. Der Wert kommt deshalb aus der Aufzeichnung.
+    assert fixture_json("tag_list")["result"][0] in out
 
 
 # ─── Tool 8: wsl_get_recent_datasets ─────────────────────────────────────────
@@ -391,8 +405,14 @@ async def test_wsl_catalog_stats(
     out = await wsl_catalog_stats()
     assert "Katalog-Übersicht" in out
     assert "Forschungseinheiten:" in out
-    # Top-Organisations-Sektion
-    assert "WSL-Institut SLF" in out or "WSL" in out
+    # Top-Organisations-Sektion: die GROESSTE Organisation, nicht die erste der
+    # Liste — abgeleitet, damit die Zusicherung nicht an der Sortierung der
+    # aufgezeichneten Antwort haengt.
+    _top = max(
+        fixture_json("organization_list")["result"],
+        key=lambda o: o.get("package_count") or 0,
+    )
+    assert _top["title"] in out
 
 
 # ─── Resources ───────────────────────────────────────────────────────────────
@@ -408,7 +428,7 @@ async def test_resource_organization(
 
     out = await get_organization_resource("slf")
     parsed = json.loads(out)
-    assert parsed["name"] == "slf"
+    assert parsed["name"] == fixture_json("organization_show")["result"]["name"]
 
 
 @respx.mock
@@ -422,7 +442,7 @@ async def test_resource_domain(
     out = await get_domain_resource("wald")
     parsed = json.loads(out)
     assert parsed["domain"] == "wald"
-    assert parsed["total"] == 815
+    assert parsed["total"] == fixture_json("package_search")["result"]["count"]
     assert len(parsed["datasets"]) == 2
 
 
