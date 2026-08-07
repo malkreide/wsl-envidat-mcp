@@ -34,6 +34,7 @@ from wsl_envidat_mcp.api_client import (
     ckan_organization_show,
     ckan_package_search,
     ckan_package_show,
+    ckan_results,
     ckan_tag_list,
     format_dataset_summary,
     handle_api_error,
@@ -281,7 +282,7 @@ def _format_search_results(
     suggestions: list[str] | None = None,
 ) -> str:
     """Formatiert Suchergebnisse einheitlich für alle Such-Tools."""
-    packages = result.get("results", [])
+    packages = ckan_results(result)
     count = result.get("count", 0)
     shown = len(packages)
 
@@ -1017,7 +1018,7 @@ async def get_domain_resource(domain: str) -> str:
                         "org": (p.get("organization") or {}).get("name"),
                         "url": f"{ENVIDAT_PORTAL}/dataset/{p.get('name')}",
                     }
-                    for p in result.get("results", [])
+                    for p in ckan_results(result)
                 ],
             },
             indent=2,

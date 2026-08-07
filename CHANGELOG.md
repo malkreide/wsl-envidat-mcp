@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Der Fix vom 2026-08-07 bestätigte `result` und hörte dort auf.** Die Ebene
+  darunter blieb offen: Die Formatierer lasen weiter
+  `result.get("results", [])`, und eine Strukturänderung eine Ebene tiefer
+  ergab weiterhin «0 Datensätze gefunden» — dieselbe Antwort wie eine korrekte
+  Suche ohne Treffer.
+
+  Dass ein Fix seine eigene Ebene bestätigt und die nächste offen lässt, ist
+  die häufigste Form dieses Fehlers: Er **wandert nach unten**, statt zu
+  verschwinden.
+
+  Beide Lesestellen laufen jetzt über `ckan_results()`, das `results` **und**
+  `count` bestätigt. CKAN liefert beide bei `package_search` immer, auch bei
+  null Treffern; `count: 0` mit vorhandenem `results` bleibt eine leere Suche.
+
+  Nachtrag zum Portfolio-Durchlauf
+  ([`FID-006`](https://github.com/malkreide/mcp-audit-skill/blob/main/checks/FID-006.md)).
+
 ### Hinzugefuegt — die Fixtures sind aufgezeichnet, nicht mehr ausgedacht
 
 **`scripts/record_fixtures.py`** zeichnet fuenf CKAN-Antworten von
