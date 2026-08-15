@@ -67,23 +67,17 @@ jobs:
       - run: ruff check src/ tests/ scripts/
       - run: ruff format --check src/ tests/ scripts/
 
-  live-tests:
-    # Live-Calls zu envidat.ch. Läuft nur manuell oder bei push auf main —
-    # nicht auf PRs, damit der Build nicht an externer Verfügbarkeit hängt.
-    name: Live integration tests
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: uv installieren
-        run: pip install uv
-      - name: Abhängigkeiten installieren
-        run: uv pip install -e ".[dev]" --system
-      - name: Live-Tests gegen envidat.ch
-        run: pytest -m live -v
-        env:
-          PYTHONPATH: src
-        timeout-minutes: 10
+# Der frühere `live-tests`-Job stand hier. Er ist nach
+# `.github/workflows/live.yml` gezogen, und zwar nicht als Umzug, sondern weil
+# er zwei Dinge nicht konnte:
+#
+#   1. Er hatte keinen Zeitplan (`workflow_dispatch` oder Push auf `main`).
+#      Ruht das Repo, faellt die Pruefung aus — und der Vertrag mit der Quelle
+#      bricht gerade dann, wenn niemand etwas anfasst.
+#   2. Er hatte kein Signal. Ein roter Lauf stand in der Actions-Liste und
+#      sonst nirgends; gesehen haette ihn nur, wer ohnehin hinsieht.
+#
+# Ihn hier zusaetzlich stehen zu lassen waere schlechter als ihn zu loeschen:
+# Zwei Live-Laeufe gegen dieselbe Quelle, von denen einer stumm rot wird,
+# lassen offen, welcher gemeint ist, wenn jemand «die Live-Tests sind rot»
+# sagt.
