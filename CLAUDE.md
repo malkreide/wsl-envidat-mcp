@@ -70,9 +70,21 @@ sie dieselbe Version aus `pyproject.toml` beziehen und keine zweite nennen.
 ```
 ruff check src/ tests/ scripts/
 ruff format --check src/ tests/ scripts/
+python -m py_compile src/wsl_envidat_mcp/server.py src/wsl_envidat_mcp/api_client.py
+python -c "from wsl_envidat_mcp.server import mcp; print('Import OK')"
 pytest -m "not live" -v
 python scripts/check_version_sync.py
 ```
+
+Syntax-Prüfung und Import-Test fehlten hier, obwohl der Block «wörtlich»
+heisst — sie stehen in `ci.yml` zwischen Format-Check und Tests. Die zwei
+ruff-Gates laufen zusätzlich im Job `lint`, der keine Matrix hat und auf 3.11
+läuft; ein `fail-fast: false` steht nicht da.
+
+**`container.yml` ist kein Gate, sondern die Auslieferung.** Er baut das Image
+für `linux/amd64` und `linux/arm64` und schiebt es nach `ghcr.io`. Er stand in
+keiner Liste — wer ihn nicht kennt, sucht die Container-Veröffentlichung in
+`publish.yml`, wo sie nicht ist.
 
 **Live-Tests: geplanter Workflow vorhanden.** `.github/workflows/live.yml`,
 `cron: "47 5 * * *"` plus `workflow_dispatch`. Die Live-Suite ist also nicht bloss
