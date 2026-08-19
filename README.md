@@ -153,6 +153,12 @@ A hardened multi-stage image is published to GitHub Container Registry on
 every `main` push and semver tag. Runs as non-root (`uid=1000`), no build
 tools in the runtime layer, multi-arch (`linux/amd64` + `linux/arm64`).
 
+The publishing workflow is [`.github/workflows/container.yml`](.github/workflows/container.yml) —
+not `publish.yml`, which only uploads the Python package to PyPI on a
+release. `container.yml` is delivery, not a gate: it does not gate a pull
+request, and a red run there means the image is missing, not that the code
+is broken.
+
 ```bash
 docker run --rm -p 8000:8000 \
   --read-only --tmpfs /tmp \
@@ -249,7 +255,10 @@ wsl-envidat-mcp/
 ├── tests/
 │   └── test_integration.py # 11 live API integration tests
 ├── .github/workflows/
-│   └── ci.yml              # GitHub Actions CI (Python 3.11–3.13)
+│   ├── ci.yml              # Gates: lint, format, syntax, import, tests, version sync
+│   ├── live.yml            # Scheduled live tests against envidat.ch (cron 05:47 UTC)
+│   ├── container.yml       # Builds & pushes the ghcr.io image (delivery, not a gate)
+│   └── publish.yml         # Uploads the Python package to PyPI on a release
 ├── pyproject.toml          # Project config (hatchling build backend)
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md         # Contribution guide (English)

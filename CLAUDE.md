@@ -85,11 +85,6 @@ heisst — sie stehen in `ci.yml` zwischen Format-Check und Tests. Die zwei
 ruff-Gates laufen zusätzlich im Job `lint`, der keine Matrix hat und auf 3.11
 läuft; ein `fail-fast: false` steht nicht da.
 
-**`container.yml` ist kein Gate, sondern die Auslieferung.** Er baut das Image
-für `linux/amd64` und `linux/arm64` und schiebt es nach `ghcr.io`. Er stand in
-keiner Liste — wer ihn nicht kennt, sucht die Container-Veröffentlichung in
-`publish.yml`, wo sie nicht ist.
-
 **Live-Tests: geplanter Workflow vorhanden.** `.github/workflows/live.yml`,
 `cron: "47 5 * * *"` plus `workflow_dispatch`. Die Live-Suite ist also nicht bloss
 per `-m "not live"` ausgeschlossen — DRIFT-005 ist hier erfüllt. `schedule`
