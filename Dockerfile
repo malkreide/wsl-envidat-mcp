@@ -4,7 +4,7 @@
 # Ziel: minimaler, non-root Container für Cloud-Deployment.
 
 # ─── Stage 1: Builder ────────────────────────────────────────────────────────
-FROM python:3.11-slim AS builder
+FROM python:3.14-slim AS builder
 
 WORKDIR /build
 
@@ -20,7 +20,7 @@ COPY src ./src
 RUN pip install --no-cache-dir --target=/install .
 
 # ─── Stage 2: Runtime ────────────────────────────────────────────────────────
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 # Non-root User (SEC-007)
 RUN useradd --create-home --uid 1000 --shell /usr/sbin/nologin mcp
