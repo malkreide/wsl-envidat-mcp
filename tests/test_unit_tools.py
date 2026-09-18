@@ -18,6 +18,7 @@ import pytest
 import respx
 from fixture_data import fixture_json
 from mcp.server.mcpserver.exceptions import ToolError
+from mcp.types import CallToolResult, TextContent
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
@@ -46,6 +47,26 @@ from wsl_envidat_mcp.server import (  # noqa: E402
 )
 
 
+def _text(result: CallToolResult) -> str:
+    """Der lesbare Block einer Tool-Antwort.
+
+    Seit der Umstellung auf Spec 2026-07-28 geben die Tools ein
+    `CallToolResult` mit beiden Kanaelen zurueck statt eines Strings. Die
+    Zusicherungen in dieser Datei gelten dem Textkanal und sind unveraendert:
+    Was hier ankommt, ist derselbe Markdown wie vorher. Der zweite Kanal hat
+    seine eigene Datei, `tests/test_structured_output.py`.
+
+    Die beiden `assert` sind kein Beiwerk. Ohne sie wuerde ein Tool, das seinen
+    Text verliert und nur noch `structuredContent` schickt, hier mit einem
+    IndexError auffallen statt mit einer Aussage — oder, haette
+    `CallToolResult` eines Tages einen Default-Block, gar nicht.
+    """
+    assert len(result.content) == 1, result.content
+    block = result.content[0]
+    assert isinstance(block, TextContent), block
+    return block.text
+
+
 def _ok(payload: Any) -> httpx.Response:
     return httpx.Response(200, json={"success": True, "result": payload})
 
@@ -61,7 +82,7 @@ async def test_wsl_search_query_markdown(
         return_value=httpx.Response(200, json=sample_search_response)
     )
 
-    out = await wsl_search(SearchInput(query="snow avalanche", limit=5))
+    out = _text(await wsl_search(SearchInput(query="snow avalanche", limit=5)))
 
     assert "«snow avalanche»" in out
     # Aus der Fixture abgeleitet statt hingeschrieben: Titel und Gesamtzahl
@@ -81,7 +102,7 @@ async def test_wsl_search_json_includes_ogd_attribution(
         return_value=httpx.Response(200, json=sample_search_response)
     )
 
-    out = await wsl_search(SearchInput(query="forest", response_format=ResponseFormat.JSON))
+    out = _text(await wsl_search(SearchInput(query="forest", response_format=ResponseFormat.JSON)))
     parsed = json.loads(out)
     assert parsed["total_found"] == fixture_json("package_search")["result"]["count"]
     assert len(parsed["datasets"]) == 2
@@ -112,7 +133,7 @@ async def test_wsl_search_empty_returns_tag_suggestions() -> None:
         )
     )
 
-    out = await wsl_search(SearchInput(query="xyzzy"))
+    out = _text(await wsl_search(SearchInput(query="xyzzy")))
     assert "Keine Datensätze gefunden" in out
     assert "verwandte Tags" in out
     assert "xyzzy-test" in out
@@ -143,7 +164,7 @@ async def test_wsl_search_by_domain(
     route = respx.get(f"{ENVIDAT_API_BASE}/package_search").mock(
         return_value=httpx.Response(200, json=sample_search_response)
     )
-    out = await wsl_search(SearchInput(domain=WSLDomain.WALD))
+    out = _text(await wsl_search(SearchInput(domain=WSLDomain.WALD)))
     assert "Domäne" in out
     # Der erste Domain-Keyword für 'wald' ist 'forest' (build_domain_query)
     sent_url = str(route.calls[0].request.url)
@@ -158,7 +179,7 @@ async def test_wsl_search_bbox_passes_ext_bbox_param(
     route = respx.get(f"{ENVIDAT_API_BASE}/package_search").mock(
         return_value=httpx.Response(200, json=sample_search_response)
     )
-    out = await wsl_search(SearchInput(bbox=[8.35, 47.15, 8.98, 47.72]))
+    out = _text(await wsl_search(SearchInput(bbox=[8.35, 47.15, 8.98, 47.72])))
     sent_url = str(route.calls[0].request.url)
     assert "ext_bbox=8.35%2C47.15%2C8.98%2C47.72" in sent_url
     assert "BBox" in out
@@ -199,7 +220,7 @@ async def test_wsl_search_combines_query_and_organization(
 async def test_wsl_get_dataset_markdown(sample_dataset: dict[str, Any]) -> None:
     respx.get(f"{ENVIDAT_API_BASE}/package_show").mock(return_value=_ok(sample_dataset))
 
-    out = await wsl_get_dataset(GetDatasetInput(id_or_slug=sample_dataset["name"]))
+    out = _text(await wsl_get_dataset(GetDatasetInput(id_or_slug=sample_dataset["name"])))
     assert sample_dataset["title"][:24] in out
     assert sample_dataset["name"] in out
     assert sample_dataset["license_title"] in out
@@ -235,7 +256,7 @@ async def test_wsl_search_all_domains_smoke(
     respx.get(f"{ENVIDAT_API_BASE}/package_search").mock(
         return_value=httpx.Response(200, json=sample_search_response)
     )
-    out = await wsl_search(SearchInput(domain=domain))
+    out = _text(await wsl_search(SearchInput(domain=domain)))
     assert "Domäne" in out
 
 
@@ -250,7 +271,7 @@ async def test_wsl_list_organizations(
         return_value=httpx.Response(200, json=sample_orgs_response)
     )
 
-    out = await wsl_list_organizations()
+    out = _text(await wsl_list_organizations())
     assert "WSL-Forschungseinheiten" in out
     # Erste Organisation aus der aufgezeichneten Liste — die Vorgaengerin nannte
     # «wsl» und «slf», die es in EnviDat gar nicht gibt.
@@ -271,7 +292,7 @@ async def test_wsl_get_organization(
     )
 
     _org = fixture_json("organization_show")["result"]
-    out = await wsl_get_organization(GetOrganizationInput(name=_org["name"]))
+    out = _text(await wsl_get_organization(GetOrganizationInput(name=_org["name"])))
     assert _org["title"] in out
     assert "Datensätze" in out
 
@@ -287,7 +308,7 @@ async def test_wsl_list_tags_with_query(
         return_value=httpx.Response(200, json=sample_tag_list_response)
     )
 
-    out = await wsl_list_tags(ListTagsInput(query="snow", limit=10))
+    out = _text(await wsl_list_tags(ListTagsInput(query="snow", limit=10)))
     assert "«snow»" in out
     # EnviDat fuehrt Tags in GROSSBUCHSTABEN; die erfundene Fixture hatte sie
     # kleingeschrieben. Der Wert kommt deshalb aus der Aufzeichnung.
@@ -305,7 +326,7 @@ async def test_wsl_get_recent_datasets(
         return_value=httpx.Response(200, json=sample_search_response)
     )
 
-    out = await wsl_get_recent_datasets(GetRecentDatasetsInput(limit=5))
+    out = _text(await wsl_get_recent_datasets(GetRecentDatasetsInput(limit=5)))
     assert "aktualisierte WSL-Datensätze" in out
     # Sort-Param muss "metadata_modified desc" sein
     sent_url = str(route.calls[0].request.url)
@@ -323,7 +344,7 @@ async def test_wsl_get_avalanche_data(
         return_value=httpx.Response(200, json=sample_search_response)
     )
 
-    out = await wsl_get_avalanche_data(SimpleQueryInput(limit=5))
+    out = _text(await wsl_get_avalanche_data(SimpleQueryInput(limit=5)))
     assert "Lawinen" in out or "SLF" in out
 
 
@@ -352,7 +373,7 @@ async def test_wsl_get_avalanche_data_fallback() -> None:
         side_effect=[httpx.Response(200, json=empty), httpx.Response(200, json=non_empty_sample)]
     )
 
-    out = await wsl_get_avalanche_data(SimpleQueryInput(limit=5))
+    out = _text(await wsl_get_avalanche_data(SimpleQueryInput(limit=5)))
     assert route.call_count == 2
     assert "Fallback Avalanche" in out
 
@@ -368,7 +389,7 @@ async def test_wsl_get_forest_data(
         return_value=httpx.Response(200, json=sample_search_response)
     )
 
-    out = await wsl_get_forest_data(SimpleQueryInput(limit=5))
+    out = _text(await wsl_get_forest_data(SimpleQueryInput(limit=5)))
     assert "Wald" in out or "LFI" in out
 
 
@@ -383,7 +404,7 @@ async def test_wsl_get_naturgefahren_data(
         return_value=httpx.Response(200, json=sample_search_response)
     )
 
-    out = await wsl_get_naturgefahren_data(SimpleQueryInput(limit=5))
+    out = _text(await wsl_get_naturgefahren_data(SimpleQueryInput(limit=5)))
     assert "Naturgefahren" in out
 
 
@@ -402,7 +423,7 @@ async def test_wsl_catalog_stats(
         return_value=httpx.Response(200, json=sample_orgs_response)
     )
 
-    out = await wsl_catalog_stats()
+    out = _text(await wsl_catalog_stats())
     assert "Katalog-Übersicht" in out
     assert "Forschungseinheiten:" in out
     # Top-Organisations-Sektion: die GROESSTE Organisation, nicht die erste der
