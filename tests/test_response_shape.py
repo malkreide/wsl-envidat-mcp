@@ -187,11 +187,18 @@ class TestCkanResults:
         rows = [{"name": "a"}]
         assert ckan_results({"count": 1, "results": rows}) == rows
 
-    def test_both_read_sites_use_the_helper(self):
-        """Zwei Lesestellen; eine zu vergessen halbiert die Zusage still."""
+    def test_every_read_site_uses_the_helper(self):
+        """Jede Lesestelle; eine zu vergessen schwaecht die Zusage still.
+
+        Waren zwei. Mit `_search_payload` — der Stelle, an der die
+        `structuredContent`-Nutzlast entsteht — sind es drei. Die Zahl steht
+        hier bewusst fest und waechst nicht von selbst mit: Wer eine vierte
+        Lesestelle einbaut, soll an dieser Zeile vorbei und sich fragen, ob sie
+        den Helfer benutzt. Ein `>= 2` haette genau das nicht getan.
+        """
         from pathlib import Path
 
         source = Path(__file__).parent.parent / "src" / "wsl_envidat_mcp" / "server.py"
         body = source.read_text(encoding="utf-8")
-        assert body.count("ckan_results(result)") == 2
+        assert body.count("ckan_results(result)") == 3
         assert 'result.get("results", [])' not in body

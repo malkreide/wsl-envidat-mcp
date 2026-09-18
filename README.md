@@ -343,6 +343,54 @@ then move the constant, this section, `README.de.md` and
 
 ---
 
+### What the server uses from `2026-07-28`
+
+Pinning a revision is not the same as speaking it. Until now this server
+pinned `2026-07-28` and used the shape of the era before it; the table above
+was true and the wire was older than it sounded.
+
+**Two channels per tool result.** The revision gives a tool result `content`
+for the reader and `structuredContent` for the application, with
+`outputSchema` as the contract between them. Every tool now fills both: the
+same human-readable Markdown as before in `content`, and the data behind it —
+typed, schema-backed — in `structuredContent`.
+
+This is not a new interface. The fields are exactly the payload that
+`response_format="json"` has always produced. That option is the *predecessor*
+of `structuredContent`: it exists only because, before `2026-07-28`, there was
+one channel, so the machine-readable version had to travel as a JSON *string*
+inside the reader's channel. `response_format` still works and still controls
+only the text block.
+
+What it replaces is worse than nothing. A signature of `-> str` makes the SDK
+publish an `outputSchema` of `{"result": string}` and repeat the Markdown block
+underneath it. Measured on `wsl_search` against the recorded fixture: 2058
+characters of text, 2058 characters of `structuredContent.result`,
+character-identical. An `outputSchema` is a promise; that one promised
+structure and delivered prose under a key called `result`.
+
+**`serverInfo` carries its six fields.** It carried two, one of them empty.
+`version` was the expensive one: the number is kept in step across
+`pyproject.toml`, `server.json` and both README badges by
+`scripts/check_version_sync.py` — and reached every place except the one a
+client reads. It now comes from the package metadata, so no literal enters
+`src/`.
+
+**Tool titles moved to `title`.** They sat in `annotations.title`, the slot
+from before this revision. A client that follows the schema and reads
+`tool.title` got `None` and displayed the slug.
+
+**Deliberately not used:** `icons` on server, tools and resources, and the
+task-augmented call flow (`execution`). Both are optional, and neither has
+anything real to point at here — this repository ships no icon asset, and every
+call is a short CKAN query that finishes well inside a request. Declaring
+either would be a claim without a thing behind it.
+
+[`tests/test_structured_output.py`](tests/test_structured_output.py) holds all
+of the above against a live `ClientSession`, with a negative control that shows
+what the SDK does when a server does *not* do this — so the day the default
+changes, the assertions say so instead of quietly passing.
+
 ## Testing
 
 ```bash

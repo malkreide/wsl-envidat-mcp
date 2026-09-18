@@ -25,6 +25,8 @@ pytestmark = pytest.mark.live
 # src/ ins sys.path aufnehmen
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+from mcp.types import CallToolResult, TextContent  # noqa: E402
+
 from wsl_envidat_mcp.api_client import (
     ckan_organization_list,
     ckan_package_search,
@@ -52,6 +54,27 @@ from wsl_envidat_mcp.server import (
     wsl_search,
 )
 
+
+def _text(result: CallToolResult) -> str:
+    """Der lesbare Block einer Tool-Antwort.
+
+    Seit der Umstellung auf Spec 2026-07-28 geben die Tools ein
+    `CallToolResult` mit beiden Kanaelen zurueck statt eines Strings. Die
+    Zusicherungen in dieser Datei gelten dem Textkanal und sind unveraendert:
+    Was hier ankommt, ist derselbe Markdown wie vorher. Der zweite Kanal hat
+    seine eigene Datei, `tests/test_structured_output.py`.
+
+    Die beiden `assert` sind kein Beiwerk. Ohne sie wuerde ein Tool, das seinen
+    Text verliert und nur noch `structuredContent` schickt, hier mit einem
+    IndexError auffallen statt mit einer Aussage — oder, haette
+    `CallToolResult` eines Tages einen Default-Block, gar nicht.
+    """
+    assert len(result.content) == 1, result.content
+    block = result.content[0]
+    assert isinstance(block, TextContent), block
+    return block.text
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 #  SZENARIO 1: Volltextsuche mit JSON-Ausgabe
 #  Prüft: wsl_search + response_format=json
@@ -65,7 +88,7 @@ async def test_01_search_json_format() -> None:
         limit=3,
         response_format=ResponseFormat.JSON,
     )
-    result = await wsl_search(params)
+    result = _text(await wsl_search(params))
     data = json.loads(result)
     assert "total_found" in data, "JSON-Antwort fehlt 'total_found'"
     assert "datasets" in data, "JSON-Antwort fehlt 'datasets'"
@@ -94,7 +117,7 @@ async def test_02_search_with_org_filter() -> None:
         limit=5,
         organization=first_org,
     )
-    result = await wsl_search(params)
+    result = _text(await wsl_search(params))
     assert "Datensätze gefunden" in result or "total_found" in result
     print(f"  ✓ Org-Filter '{first_org}': Ergebnisse erhalten")
 
@@ -112,7 +135,7 @@ async def test_03_dataset_details_markdown() -> None:
     slug = search["results"][0]["name"]
 
     params = GetDatasetInput(id_or_slug=slug)
-    result = await wsl_get_dataset(params)
+    result = _text(await wsl_get_dataset(params))
     assert "# " in result, "Markdown-Überschrift fehlt"
     assert "Slug:" in result, "Slug-Angabe fehlt"
     assert "Organisation:" in result
@@ -132,7 +155,7 @@ async def test_04_dataset_details_json() -> None:
     slug = search["results"][0]["name"]
 
     params = GetDatasetInput(id_or_slug=slug, response_format=ResponseFormat.JSON)
-    result = await wsl_get_dataset(params)
+    result = _text(await wsl_get_dataset(params))
     data = json.loads(result)
     assert "name" in data, "JSON fehlt 'name'"
     assert "resources" in data, "JSON fehlt 'resources'"
@@ -150,7 +173,7 @@ async def test_05_all_domains() -> None:
     """Szenario 5: Alle 5 Forschungsdomänen liefern Ergebnisse."""
     for domain in WSLDomain:
         params = SearchInput(domain=domain, limit=2)
-        result = await wsl_search(params)
+        result = _text(await wsl_search(params))
         assert "Datensätze gefunden" in result, f"Domäne '{domain.value}' liefert keine Treffer"
     print("  ✓ Alle 5 Domänen liefern Ergebnisse")
 
@@ -168,7 +191,7 @@ async def test_06_domain_json() -> None:
         limit=5,
         response_format=ResponseFormat.JSON,
     )
-    result = await wsl_search(params)
+    result = _text(await wsl_search(params))
     data = json.loads(result)
     assert data["total_found"] > 0
     assert len(data["datasets"]) <= 5
@@ -184,7 +207,7 @@ async def test_06_domain_json() -> None:
 async def test_07_spatial_search_davos() -> None:
     """Szenario 7: Räumliche Suche in der Region Davos."""
     params = SearchInput(bbox=[9.7, 46.7, 10.0, 46.9], limit=5)
-    result = await wsl_search(params)
+    result = _text(await wsl_search(params))
     # Bei 0 Treffern: "Keine Datensätze gefunden", sonst BBox im Titel
     assert "BBox" in result or "Keine Datensätze" in result, "Unerwartete Antwort"
     print(f"  ✓ Raeumliche Suche Davos: Antwort erhalten ({len(result)} Zeichen)")
@@ -199,7 +222,7 @@ async def test_07_spatial_search_davos() -> None:
 async def test_08_spatial_search_with_query() -> None:
     """Szenario 8: Räumliche Suche kombiniert mit Suchbegriff."""
     params = SearchInput(bbox=[5.95, 45.8, 10.5, 47.8], query="permafrost", limit=5)
-    result = await wsl_search(params)
+    result = _text(await wsl_search(params))
     assert "BBox" in result or "Keine Datensätze" in result, "Unerwartete Antwort"
     print("  ✓ Raeumliche Suche CH + 'permafrost': OK")
 
@@ -212,7 +235,7 @@ async def test_08_spatial_search_with_query() -> None:
 
 async def test_09_list_organizations() -> None:
     """Szenario 9: Alle WSL-Forschungseinheiten werden aufgelistet."""
-    result = await wsl_list_organizations()
+    result = _text(await wsl_list_organizations())
     assert "Organisationen" in result
     assert "Datensätze" in result
     # Prüfe dass Slugs in Backticks stehen (Markdown-Formatierung)
@@ -233,7 +256,7 @@ async def test_10_organization_details() -> None:
     org_slug = orgs[0]["name"]
 
     params = GetOrganizationInput(name=org_slug, include_datasets=True)
-    result = await wsl_get_organization(params)
+    result = _text(await wsl_get_organization(params))
     assert "## " in result, "Markdown-Überschrift fehlt"
     assert "Datensätze" in result
     print(f"  ✓ Organisation '{org_slug}': Details mit Datensätzen")
@@ -248,7 +271,7 @@ async def test_10_organization_details() -> None:
 async def test_11_tags_with_prefix() -> None:
     """Szenario 11: Tags nach Präfix filtern (z.B. 'forest')."""
     params = ListTagsInput(query="forest", limit=20)
-    result = await wsl_list_tags(params)
+    result = _text(await wsl_list_tags(params))
     assert "Tags" in result
     assert "`" in result, "Tags sollten als Code formatiert sein"
     print("  ✓ Tags mit Präfix 'forest': gefunden")
@@ -263,7 +286,7 @@ async def test_11_tags_with_prefix() -> None:
 async def test_12_recent_datasets() -> None:
     """Szenario 12: Zuletzt aktualisierte Datensätze abrufen."""
     params = GetRecentDatasetsInput(limit=5, response_format=ResponseFormat.MARKDOWN)
-    result = await wsl_get_recent_datasets(params)
+    result = _text(await wsl_get_recent_datasets(params))
     assert "Zuletzt aktualisierte" in result
     assert "Datensätze gefunden" in result
     print("  ✓ Neueste Datensätze (5): OK")
@@ -278,7 +301,7 @@ async def test_12_recent_datasets() -> None:
 async def test_13_avalanche_data() -> None:
     """Szenario 13: SLF Lawinen- und Schneedaten abrufen."""
     params = SimpleQueryInput(limit=5, response_format=ResponseFormat.MARKDOWN)
-    result = await wsl_get_avalanche_data(params)
+    result = _text(await wsl_get_avalanche_data(params))
     assert "Lawinen" in result or "SLF" in result or "Datensätze gefunden" in result
     print(f"  ✓ Lawinendaten: {len(result)} Zeichen")
 
@@ -292,7 +315,7 @@ async def test_13_avalanche_data() -> None:
 async def test_14_forest_data() -> None:
     """Szenario 14: Walddaten inkl. Forstinventar LFI."""
     params = SimpleQueryInput(limit=6, response_format=ResponseFormat.JSON)
-    result = await wsl_get_forest_data(params)
+    result = _text(await wsl_get_forest_data(params))
     data = json.loads(result)
     assert data["total_found"] > 0, "Keine Walddaten gefunden"
     assert len(data["datasets"]) <= 6
@@ -308,7 +331,7 @@ async def test_14_forest_data() -> None:
 async def test_15_naturgefahren_data() -> None:
     """Szenario 15: Naturgefahren-Daten (Lawinen, Murgänge, Steinschlag)."""
     params = SimpleQueryInput(limit=8, response_format=ResponseFormat.MARKDOWN)
-    result = await wsl_get_naturgefahren_data(params)
+    result = _text(await wsl_get_naturgefahren_data(params))
     assert "Naturgefahren" in result
     assert "Datensätze gefunden" in result
     print("  ✓ Naturgefahren: Ergebnisse erhalten")
@@ -322,7 +345,7 @@ async def test_15_naturgefahren_data() -> None:
 
 async def test_16_catalog_stats() -> None:
     """Szenario 16: Katalog-Übersicht mit Domänen-Statistiken."""
-    result = await wsl_catalog_stats()
+    result = _text(await wsl_catalog_stats())
     assert "Katalog-Übersicht" in result
     assert "Datensätze gesamt:" in result
     assert "Wald" in result

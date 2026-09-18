@@ -9,6 +9,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Hinzugefuegt
 
+- **Der Server spricht Spec `2026-07-28` jetzt, statt sie nur zu pinnen.** Die
+  Konstante stand seit laengerem auf `2026-07-28`, und
+  `tests/test_protocol_version.py` hielt sie. Benutzt wurde die Form der Aera davor —
+  die Tabelle in den READMEs war richtig, und der Draht war aelter, als sie
+  klang.
+
+  **Zwei Kanaele je Tool-Resultat.** Die Revision gibt einem Resultat `content`
+  fuer den Leser und `structuredContent` fuer die Anwendung, mit `outputSchema`
+  als Vertrag dazwischen. Alle zehn Tools fuellen jetzt beide: denselben
+  lesbaren Markdown wie bisher in `content`, die Daten dahinter — typisiert und
+  schemagestuetzt — in `structuredContent`.
+
+  Die Felder sind nicht neu entworfen. Sie sind exakt die Nutzlast, die der
+  `response_format="json"`-Zweig seit jeher erzeugt. Dieser Zweig ist der
+  VORLAEUFER von `structuredContent`: Er existiert nur, weil es vor
+  `2026-07-28` einen einzigen Kanal gab und die maschinenlesbare Fassung
+  deshalb als JSON-*String* im Lesekanal reisen musste. `response_format`
+  bleibt und steuert weiterhin nur den Textblock — es zu entfernen waere ein
+  Bruch an einer Stelle, an der niemand danach gefragt hat.
+
+  Was dadurch wegfaellt, war schlechter als nichts. Eine Signatur `-> str`
+  laesst das SDK ein `outputSchema` `{"result": string}` veroeffentlichen und
+  denselben Markdown-Block ein zweites Mal darunterlegen. Gemessen an
+  `wsl_search` gegen `tests/fixtures/package_search.json`: 2058 Zeichen Text,
+  2058 Zeichen `structuredContent.result`, zeichengleich. Ein `outputSchema`
+  ist eine Zusage; jene versprach Struktur und lieferte Prosa unter einem
+  Schluessel namens `result`. Wer ihr glaubte und `structuredContent` las,
+  statt `content` zu parsen, hatte am Ende denselben String.
+
+  **Der Textkanal bleibt, was er war.** Gegengeprueft durch Vergleich der
+  gerenderten Ausgabe von elf Aufrufen ueber alle neun listen- und
+  detailliefernden Tools gegen den Stand davor: zeichengleich. Die einzige
+  Abweichung auf dem ganzen Draht ist ein zusaetzlicher Schluessel
+  `suggested_tags` im `response_format="json"`-Zweig der Suche — rein additiv,
+  kein Feld entfaellt und keines aendert seinen Typ.
+
+- **`serverInfo.version` stand auf `""`.** Die Nummer wird an vier Stellen
+  gleichgehalten — `pyproject.toml`, `server.json`, beide README-Badges —, und
+  `scripts/check_version_sync.py` haelt dieses Gate seit je. Nur erreichte sie
+  genau die Stelle nicht, an der ein Client sie liest: den Draht. Wer einen
+  Bericht bekommt, dieser Server verhalte sich falsch, kann ohne sie nicht
+  sagen, welcher Build gemeint ist. Der Wert kommt aus den Paket-Metadaten,
+  nicht aus einem Literal — ein Literal in `src/` ist genau die Drift, die
+  `check_version_sync.py` verbietet.
+
+  `title`, `description` und `websiteUrl` sind die drei uebrigen der sechs
+  `Implementation`-Felder und stehen jetzt ebenfalls.
+
+- **Die Tool-Titel sind von `annotations.title` nach `title` gezogen.**
+  `annotations.title` ist der Platz von vor dieser Revision; sie fuehrt `title`
+  als eigenes Feld auf `Tool` und laesst den alten nur noch als Rueckfall
+  gelten (SDK: `shared/metadata_utils.py`, `title > annotations.title > name`).
+  Ein Client, der dem Schema folgt und `tool.title` liest, bekam `None` und
+  zeigte den Slug. Die Verhaltens-Hints (`readOnlyHint` und die uebrigen)
+  bleiben, wo sie hingehoeren.
+
 - **Frischehinweise auf den auflistenden Methoden** (SEP-2549, Spec
   `2026-07-28`): `ttlMs` 300000, `cacheScope` `public`. Das SDK setzt beides auf
   «sofort veraltet, nie geteilt» — wer nichts übergibt, lässt jeden Client bei
@@ -138,6 +194,34 @@ unter Regel 5 und im Katalog-Check `OPS-009`.
   eine Liste. Für diese beiden Aktionen war der Ersatzwert `{}` nicht einmal vom
   richtigen Typ — dieselbe Zeile erzeugte also zwei Fehler. Jetzt `Any`, mit der
   Begründung im Docstring.
+
+### Zur Spec-Umstellung: nicht gemacht, und warum
+
+- **`icons` und der task-erweiterte Aufrufweg (`execution`).** Beides fuehrt
+  `2026-07-28`, beides ist optional, und beides haette hier nichts Wirkliches,
+  worauf es zeigt: Dieses Repo liefert kein Icon-Asset aus, und jeder Aufruf
+  ist eine kurze CKAN-Abfrage, die deutlich innerhalb eines Requests fertig
+  wird. Ein deklariertes Icon mit einer erfundenen URL waere schlechter als
+  keines.
+
+- **`wsl_get_dataset(response_format="json")` liefert weiterhin das ROHE
+  CKAN-Paket** mit allen Feldern, nicht die kuratierte Fassung. Es zu verengen
+  haette ein Schema gewonnen und Daten weggenommen. `structuredContent` traegt
+  dort die kuratierten Felder, der Textkanal das Rohe;
+  `test_der_json_zweig_gibt_weiterhin_das_rohe_paket` haelt das fest.
+
+### Zur Spec-Umstellung: die Gegenprobe
+
+Jede der neuen Zusicherungen wurde einzeln neutralisiert; sechs von sieben
+faerbten die Suite sofort rot. Die siebte nicht, und das war der Fund:
+
+«Text und Struktur nennen denselben Abrufzeitpunkt» blieb **gruen**, als der
+Aufbau der Nutzlast absichtlich verdoppelt wurde — beide Aufbauten fielen in
+dieselbe Sekunde. Eine Zusicherung ueber echte Zeit laesst sich mit echter Zeit
+nicht widerlegen; der Test sah aus wie eine Zusage und war keine. Er laeuft
+jetzt gegen eine Uhr, die bei jedem Abruf vorrueckt, und ersetzt dafuer den
+Modul-Alias `_utc_now` statt `datetime` — ins fremde Modul zu greifen
+entschaerfte die Mechanik im ganzen Prozess.
 
 ## [0.2.5] - 2026-08-02
 

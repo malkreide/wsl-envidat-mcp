@@ -345,6 +345,56 @@ und [`CHANGELOG.md`](CHANGELOG.md) gemeinsam bewegen.
 
 ---
 
+### Was der Server aus `2026-07-28` nutzt
+
+Eine Revision zu pinnen heisst nicht, sie zu sprechen. Bis jetzt pinnte dieser
+Server `2026-07-28` und benutzte die Form der Ära davor; die Tabelle oben war
+richtig, und der Draht war älter, als sie klingt.
+
+**Zwei Kanäle je Tool-Resultat.** Die Revision gibt einem Resultat `content`
+für den Leser und `structuredContent` für die Anwendung, mit `outputSchema` als
+Vertrag dazwischen. Jedes Tool füllt jetzt beide: denselben lesbaren Markdown
+wie bisher in `content`, und die Daten dahinter — typisiert und schemagestützt
+— in `structuredContent`.
+
+Das ist keine neue Schnittstelle. Die Felder sind exakt die Nutzlast, die
+`response_format="json"` seit jeher erzeugt. Diese Option ist der *Vorläufer*
+von `structuredContent`: Sie existiert nur, weil es vor `2026-07-28` einen
+einzigen Kanal gab und die maschinenlesbare Fassung deshalb als JSON-*String*
+im Lesekanal reisen musste. `response_format` funktioniert weiter und steuert
+weiterhin nur den Textblock.
+
+Was dadurch wegfällt, war schlechter als nichts. Eine Signatur `-> str` lässt
+das SDK ein `outputSchema` `{"result": string}` veröffentlichen und denselben
+Markdown-Block ein zweites Mal darunterlegen. Gemessen an `wsl_search` gegen
+die aufgezeichnete Antwort: 2058 Zeichen Text, 2058 Zeichen
+`structuredContent.result`, zeichengleich. Ein `outputSchema` ist eine Zusage;
+jene versprach Struktur und lieferte Prosa unter einem Schlüssel namens
+`result`.
+
+**`serverInfo` trägt seine sechs Felder.** Es trug zwei, eines davon leer.
+`version` war das teure: Die Nummer wird über `pyproject.toml`, `server.json`
+und beide README-Badges von `scripts/check_version_sync.py` gleichgehalten —
+und erreichte jede Stelle ausser der, an der ein Client sie liest. Sie kommt
+jetzt aus den Paket-Metadaten, damit kein Literal nach `src/` gerät.
+
+**Die Tool-Titel sind nach `title` gezogen.** Sie standen in
+`annotations.title`, dem Platz von vor dieser Revision. Ein Client, der dem
+Schema folgt und `tool.title` liest, bekam `None` und zeigte den Slug.
+
+**Bewusst nicht genutzt:** `icons` auf Server, Tools und Resources sowie der
+task-erweiterte Aufrufweg (`execution`). Beides ist optional, und beides hätte
+hier nichts Wirkliches, worauf es zeigt — dieses Repo liefert kein
+Icon-Asset aus, und jeder Aufruf ist eine kurze CKAN-Abfrage, die deutlich
+innerhalb eines Requests fertig wird. Eines davon zu deklarieren wäre eine
+Angabe ohne Gegenstand.
+
+[`tests/test_structured_output.py`](tests/test_structured_output.py) hält all
+das gegen eine echte `ClientSession`, mit einer Negativkontrolle, die zeigt,
+was das SDK tut, wenn ein Server das *nicht* tut — damit an dem Tag, an dem
+sich der Default ändert, die Zusicherungen es sagen statt still grün zu
+bleiben.
+
 ## Tests
 
 ```bash
