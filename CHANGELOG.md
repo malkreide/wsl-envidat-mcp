@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-19
+
+### Breaking changes
+
+- **`structuredContent` hat eine andere Form.** Bis 0.2.5 legte das SDK dort
+  `{"result": "<derselbe Markdown-Block>"}` ab — ein Wrapper, den niemand
+  entworfen hatte und der nur entstand, weil die Tools mit `-> str`
+  signiert waren. Ab 0.3.0 steht dort die eigentliche Nutzlast: je nach Tool
+  `datasets`, `total_found`, `organizations`, `tags` und die vier
+  Herkunftsfelder, beschrieben durch das `outputSchema` desselben Tools.
+
+  **Wen das trifft:** einen Aufrufer, der `structuredContent.result` liest.
+  Diesen Schluessel gibt es nicht mehr. Wer `content[0].text` liest — der
+  uebliche Weg, und der einzige, den es vor Spec `2026-07-28` gab — merkt
+  nichts: Der Textkanal ist zeichengleich geblieben, gegengeprueft ueber elf
+  Aufrufe.
+
+  Kein Tool-Name, kein Eingabeparameter und kein Ausgabetext aendert sich.
+  Die Aenderung betrifft ausschliesslich den maschinenlesbaren Kanal, und dort
+  ersetzt sie eine Textkopie durch Daten.
+
 ### Hinzugefuegt
 
 - **Der Server spricht Spec `2026-07-28` jetzt, statt sie nur zu pinnen.** Die
