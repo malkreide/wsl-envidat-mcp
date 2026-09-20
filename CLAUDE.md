@@ -376,7 +376,11 @@ wie der Code: Nichts ist rot, weil nichts geprüft wird, worauf es ankommt.
 ## Teil 2 — Dieses Repo
 
 
-**ruff: eine Quelle.** `pyproject.toml`, `dev`-Extra, `ruff==0.16.3`. Die CI
+**ruff: eine Quelle.** `pyproject.toml`, `dev`-Extra. Die Version steht dort
+und nur dort — hier absichtlich nicht wiederholt: Bis zum 20.9.2026 nannte
+diese Zeile `ruff==0.16.3`, waehrend `pyproject.toml` nach einem
+Dependabot-Bump laengst `0.16.5` sagte. Der Abschnitt, der eine einzige Quelle
+verlangt, fuehrte selbst eine zweite. Die CI
 hat keinen eigenen Pin-Schritt — der Install über `ci.yml` genügt, lokal wie
 dort. Eine `.pre-commit-config.yaml` gibt es nicht; wenn eine dazukommt, muss
 sie dieselbe Version aus `pyproject.toml` beziehen und keine zweite nennen.

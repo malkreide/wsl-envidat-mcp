@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Das Container-Image von v0.3.0 konnte nicht starten.** Das Dockerfile
+  kopierte die Abhaengigkeiten nach `/usr/local/lib/python3.11/site-packages`
+  — die Minor-Version stand im Pfad und musste zu `FROM` passen. Am 2026-09-20
+  hob ein Dependabot-PR das Basis-Image von `python:3.11-slim` auf
+  `python:3.14-slim` und liess den Pfad stehen. Die Abhaengigkeiten landeten
+  damit in einem Verzeichnis, in das der Interpreter nie schaut.
+
+  **Gemerkt hat es niemand, weil nichts danach fragte.** `COPY` legt einen
+  nicht existierenden Zielpfad einfach an, `docker build` lief gruen durch,
+  und ein Smoke-Test fehlte. Das Image ging als `v0.3.0` in die Registry und
+  war nicht lauffaehig. Die CI hat das nicht abgedeckt: Sie testet das Paket,
+  nicht das Image.
+
+  Der Pfad traegt jetzt keine Version mehr (`/opt/deps` plus `PYTHONPATH`).
+  Das allein ist aber kein Schutz — `--target` installiert ABI-gebundene
+  Binaerteile, beide Build-Stufen muessen weiterhin dieselbe Minor-Version
+  fahren. Der Schutz ist der neue Smoke-Test: derselbe Import, den `ci.yml`
+  als Gate fuehrt, jetzt auch zur Build-Zeit im Runtime-Image. Ein Bump, der
+  die Abhaengigkeiten unerreichbar macht, faellt damit beim Bauen auf.
+
+- **Der Container-Build lief nie auf einem Pull Request.** `container.yml`
+  kannte nur `push` auf `main` und Tags. Damit haette der Smoke-Test oben
+  seine Aufgabe verfehlt: Er soll ein kaputtes Image aufhalten, bevor es
+  entsteht, nicht danach. Genau daran lag es auch urspruenglich — der
+  Dependabot-PR, der das Basis-Image anhob, konnte das Dockerfile gar nicht
+  bauen, und niemand haette es ihm angesehen.
+
+  Neu baut jeder PR gegen `main` das Image mit, ohne es zu veroeffentlichen
+  (`push: ${{ github.event_name != 'pull_request' }}`). In die Registry kommt
+  weiterhin nur, was auf `main` oder einem Tag landet.
+
+- **Das Basis-Image steht wieder im getesteten Band.** Zurueck auf
+  `python:3.13-slim`. Die CI-Matrix faehrt 3.11 / 3.12 / 3.13; mit 3.14 lief
+  das ausgelieferte Image auf einer Laufzeit, gegen die nie getestet wurde.
+
+  3.14 in die Matrix aufzunehmen war erwogen und ist zurueckgestellt: Der
+  Abhaengigkeitsbaum traegt es derzeit nicht. `pydantic 2.13.5` — die neueste
+  verfuegbare — stirbt beim Import mit `TypeError: _eval_type() got an
+  unexpected keyword argument 'prefer_fwd_module'`.
+
+  **Der Messung fehlt ein Stueck, und das steht hier statt unausgesprochen:**
+  gemessen gegen `3.14.0rc2`, was `uv python install 3.14` liefert. Ob 3.14
+  *final* denselben Fehler zeigt, ist damit NICHT festgestellt — ein Daemon
+  zum Bauen von `python:3.14-slim` stand nicht zur Verfuegung. Belegt ist ein
+  Blocker auf rc2, nicht seine Abwesenheit auf final.
+
+### Dokumentation
+
+- **`CLAUDE.md` nannte eine ruff-Version, die nicht mehr stimmte.** Teil 2
+  sagt «ruff: eine Quelle» und schrieb daneben `ruff==0.16.3`, waehrend
+  `pyproject.toml` nach einem Dependabot-Bump `0.16.5` fuehrte. Der Abschnitt,
+  der eine einzige Quelle verlangt, war selbst die zweite. Die Zahl steht
+  jetzt nur noch in `pyproject.toml`.
+
 ## [0.3.0] - 2026-09-19
 
 ### Breaking changes

@@ -1,6 +1,14 @@
 name: Container image
 
 on:
+  # Auf Pull Requests wird GEBAUT, aber nicht gepusht. Ohne diesen Trigger
+  # lief der Build erst nach dem Merge, und der Smoke-Test im Dockerfile
+  # haette seine Aufgabe verfehlt: Er soll ein kaputtes Image aufhalten,
+  # bevor es entsteht, nicht danach. Am 20.9.2026 ging genau deshalb ein
+  # nicht lauffaehiges v0.3.0-Image in die Registry — der Dependabot-PR, der
+  # das Basis-Image anhob, konnte das Dockerfile gar nicht bauen.
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
     tags: ["v*.*.*"]
@@ -54,7 +62,10 @@ jobs:
           context: .
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
-          push: true
+          # Nur ausserhalb von Pull Requests veroeffentlichen. Ein PR baut das
+          # Image samt Smoke-Test und wirft es weg; in die Registry kommt nur,
+          # was auf `main` oder einem Tag landet.
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
