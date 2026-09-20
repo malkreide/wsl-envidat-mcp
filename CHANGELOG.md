@@ -41,11 +41,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ist die Gegenprobe: Ohne ihn wäre das grüne Ergebnis keine Messung, sondern
   bloss ein grünes Ergebnis.
 
+  **Auf dem Runner bestätigt.** Der erste Lauf dieser Matrix hat es
+  beantwortet: `setup-python` mit `allow-prereleases: false` richtet CPython
+  **3.14.7** ein — final, und zufällig derselbe Patch-Stand wie lokal. Alle
+  sieben Gates grün, `103 passed, 31 deselected`.
+
   **Was das nicht sagt.** Gemessen ist 3.14.7, nicht 3.14.0; die
   Signaturdiskrepanz betrifft rc2 gegen final, und beide Befunde decken sich,
-  belegt ist aber der eine Patch-Stand. Und die Messung lief lokal, nicht auf
-  einem GitHub-Runner — dass `setup-python` dort 3.14 liefert, zeigt erst der
-  erste Lauf dieser Matrix.
+  belegt ist aber der eine Patch-Stand. Mit welchem Patch-Stand die Matrix in
+  einem Jahr läuft, entscheidet die Toolcache-Auflösung von `setup-python`,
+  nicht diese Zeile.
 
 - **Das Basis-Image des Containers bleibt `python:3.13-slim`.** Der Grund,
   es von 3.14 zurückzunehmen, war «läuft auf einer Laufzeit, gegen die nie
