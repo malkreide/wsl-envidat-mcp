@@ -29,6 +29,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   als Gate fuehrt, jetzt auch zur Build-Zeit im Runtime-Image. Ein Bump, der
   die Abhaengigkeiten unerreichbar macht, faellt damit beim Bauen auf.
 
+- **Der Container-Build lief nie auf einem Pull Request.** `container.yml`
+  kannte nur `push` auf `main` und Tags. Damit haette der Smoke-Test oben
+  seine Aufgabe verfehlt: Er soll ein kaputtes Image aufhalten, bevor es
+  entsteht, nicht danach. Genau daran lag es auch urspruenglich — der
+  Dependabot-PR, der das Basis-Image anhob, konnte das Dockerfile gar nicht
+  bauen, und niemand haette es ihm angesehen.
+
+  Neu baut jeder PR gegen `main` das Image mit, ohne es zu veroeffentlichen
+  (`push: ${{ github.event_name != 'pull_request' }}`). In die Registry kommt
+  weiterhin nur, was auf `main` oder einem Tag landet.
+
 - **Das Basis-Image steht wieder im getesteten Band.** Zurueck auf
   `python:3.13-slim`. Die CI-Matrix faehrt 3.11 / 3.12 / 3.13; mit 3.14 lief
   das ausgelieferte Image auf einer Laufzeit, gegen die nie getestet wurde.
