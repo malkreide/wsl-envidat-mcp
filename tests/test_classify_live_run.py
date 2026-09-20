@@ -39,6 +39,20 @@ def suite(tests: int, failures: int = 0, errors: int = 0, skipped: int = 0) -> s
     )
 
 
+def suite_mit_skips(meldung: str, tests: int = 3) -> str:
+    """Ein XML, wie pytest es bei uebersprungenen Tests schreibt — mit Begruendung."""
+    faelle = "".join(
+        f'<testcase name="t{i}"><skipped type="pytest.skip" '
+        f'message="{meldung}">{meldung}</skipped></testcase>'
+        for i in range(tests)
+    )
+    return (
+        '<?xml version="1.0" encoding="utf-8"?>\n'
+        f'<testsuites><testsuite name="pytest" tests="{tests}" failures="0" '
+        f'errors="0" skipped="{tests}">{faelle}</testsuite></testsuites>'
+    )
+
+
 class ClassifyTest(unittest.TestCase):
     def _state(self, xml: str) -> tuple[str, str]:
         with tempfile.TemporaryDirectory() as tmp:
@@ -62,6 +76,30 @@ class ClassifyTest(unittest.TestCase):
         state, reason = self._state(suite(tests=6, skipped=6))
         self.assertEqual(state, clr.UNKNOWN)
         self.assertIn("uebersprungen", reason)
+
+    def test_die_skip_begruendung_steht_im_grund(self):
+        """Lauf 29 von live.yml, 11.9.2026: rot, ohne zu sagen woran.
+
+        Der Zaehler sagt nur, DASS nichts geprueft wurde. Ein fehlendes
+        Secret, ein DNS-Fehler und eine Sperre sehen darin gleich aus — die
+        Begruendung trennt sie, und sie steht im XML.
+        """
+        state, reason = self._state(
+            suite_mit_skips("EnviDat-API nicht erreichbar. Versuch 1: ConnectError: kein DNS")
+        )
+        self.assertEqual(state, clr.UNKNOWN)
+        self.assertIn("ConnectError", reason)
+        self.assertIn("kein DNS", reason)
+
+    def test_dieselbe_begruendung_steht_nur_einmal(self):
+        """31 uebersprungene Tests tragen dieselbe Meldung 31-mal."""
+        _, reason = self._state(suite_mit_skips("immer derselbe Grund", tests=31))
+        self.assertEqual(reason.count("immer derselbe Grund"), 1)
+
+    def test_ohne_begruendung_bleibt_der_alte_grund_stehen(self):
+        """Ein XML ohne `skipped`-Elemente darf keinen leeren Zusatz anhaengen."""
+        _, reason = self._state(suite(tests=6, skipped=6))
+        self.assertNotIn("Laut pytest", reason)
 
     def test_teilweise_uebersprungen_ist_gruen(self):
         """Ein einzelner Skip ist eine Entscheidung im Test, kein Ausfall."""
