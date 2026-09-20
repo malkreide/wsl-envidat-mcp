@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-09-20
+
 ### Fixed
 
 - **Das Container-Image von v0.3.0 konnte nicht starten.** Das Dockerfile
@@ -62,6 +64,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `pyproject.toml` nach einem Dependabot-Bump `0.16.5` fuehrte. Der Abschnitt,
   der eine einzige Quelle verlangt, war selbst die zweite. Die Zahl steht
   jetzt nur noch in `pyproject.toml`.
+
+### Wozu dieser Release
+
+Am Paket aendert sich nichts ausser der Nummer: Zwischen `v0.3.0` und diesem
+Stand liegt kein Commit in `src/` oder `tests/`. Wer `uvx wsl-envidat-mcp` oder
+`pip install` benutzt, gewinnt durch 0.3.1 nichts — betroffen war er auch nie,
+das Dockerfile geht nicht ins Wheel.
+
+Der Release existiert fuer die Registry. Semver-Tags eines Images entstehen
+ausschliesslich aus Git-Tags; `:latest` hat sich beim Merge nach `main` selbst
+erneuert, `:v0.3.0` dagegen bleibt stehen und bleibt unbrauchbar. Ein neuer Tag
+ist der einzige Weg, dem kaputten Versions-Tag ein lauffaehiges zur Seite zu
+stellen.
+
 
 ## [0.3.0] - 2026-09-19
 
