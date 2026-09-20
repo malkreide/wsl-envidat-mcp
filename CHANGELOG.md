@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Geändert
+
+- **Python 3.14 ist in der CI-Matrix.** Die Matrix fährt neu 3.11 / 3.12 /
+  3.13 / 3.14; die Trove-Classifier in `pyproject.toml` nennen 3.14 ebenfalls.
+  `requires-python` bleibt `>=3.11` und war nie die Schranke.
+
+  **Das korrigiert die praktische Aussage des 0.3.1-Eintrags unten.** Dort
+  steht ein Blocker: `pydantic 2.13.5` stirbt auf 3.14 beim Import mit
+  `TypeError: _eval_type() got an unexpected keyword argument
+  'prefer_fwd_module'`. Der Eintrag nennt auch die Lücke der damaligen
+  Messung — gemessen war `3.14.0rc2`, nicht *final*. Genau diese Lücke ist
+  jetzt geschlossen, und sie kippt den Befund: Der Blocker ist ein
+  rc2-Artefakt.
+
+  Die Ursache steht in CPythons `Lib/typing.py`. In `v3.14.0rc2` endet die
+  Signatur von `_eval_type` bei `parent_fwdref=None`; in `v3.14.0` final
+  trägt sie zusätzlich `prefer_fwd_module=False`. pydantic ruft den Parameter
+  hinter `if sys.version_info >= (3, 14):` auf, zielt also auf die API von
+  final. rc2 meldet diese Version und hat den Parameter nicht — der Fehler
+  trifft ausschliesslich den Release Candidate.
+
+  **Gemessen, nicht geschlossen** (2026-09-20, gleicher Code, gleiches
+  `pydantic 2.13.5`, nur der Interpreter unterschiedlich):
+
+  | Gate | `3.14.0rc2` | `3.14.7` |
+  | --- | --- | --- |
+  | `python -c "from wsl_envidat_mcp.server import mcp"` | `TypeError` | Import OK |
+  | `pytest -m "not live"` | 6 Collection-Fehler | 103 passed, 31 deselected |
+
+  Die übrigen vier Gates — Ruff-Pin, `ruff check`, `ruff format --check`,
+  `check_version_sync.py` — laufen auf 3.14.7 ebenfalls grün. Der rote Zweig
+  ist die Gegenprobe: Ohne ihn wäre das grüne Ergebnis keine Messung, sondern
+  bloss ein grünes Ergebnis.
+
+  **Auf dem Runner bestätigt.** Der erste Lauf dieser Matrix hat es
+  beantwortet: `setup-python` mit `allow-prereleases: false` richtet CPython
+  **3.14.7** ein — final, und zufällig derselbe Patch-Stand wie lokal. Alle
+  sieben Gates grün, `103 passed, 31 deselected`.
+
+  **Was das nicht sagt.** Gemessen ist 3.14.7, nicht 3.14.0; die
+  Signaturdiskrepanz betrifft rc2 gegen final, und beide Befunde decken sich,
+  belegt ist aber der eine Patch-Stand. Mit welchem Patch-Stand die Matrix in
+  einem Jahr läuft, entscheidet die Toolcache-Auflösung von `setup-python`,
+  nicht diese Zeile.
+
+- **Das Basis-Image des Containers bleibt `python:3.13-slim`.** Der Grund,
+  es von 3.14 zurückzunehmen, war «läuft auf einer Laufzeit, gegen die nie
+  getestet wurde». Dieser Grund fällt mit der Matrix oben weg, der Wechsel
+  selbst ist damit aber nur möglich und nicht nötig: 3.13 ist getestet,
+  unterstützt und liefert ein lauffähiges Image. Bewusst unverändert
+  gelassen, nicht übersehen.
+
 ## [0.3.1] - 2026-09-20
 
 ### Fixed
