@@ -59,6 +59,29 @@ FINDING = "finding"
 UNKNOWN = "unknown"
 
 
+def _skip_meldungen(suites: list[ET.Element]) -> list[str]:
+    """Die verschiedenen Skip-Begruendungen aus dem XML, in Reihenfolge.
+
+    Ohne sie sagt ein `unknown`-Lauf nur, DASS nichts geprueft wurde. Die
+    Begruendung steht im XML — ein fehlendes Secret, ein DNS-Fehler und eine
+    Sperre sehen darin verschieden aus, im Zaehler aber gleich. Doppelte fallen
+    raus: 31 uebersprungene Tests tragen dieselbe Meldung 31-mal.
+    """
+    texte: list[str] = []
+    for suite in suites:
+        for skipped in suite.iter("skipped"):
+            # pytest schreibt die Begruendung ins Attribut `message` UND in den
+            # Elementtext, dort mit `datei:zeile:` davor. Das Attribut ist der
+            # saubere Text; der Elementtext ist die Rueckfallebene, falls eine
+            # kuenftige Version das Attribut weglaesst. Beide zu verketten
+            # doppelte die Meldung — genau daran ist der erste Entwurf
+            # gefallen, und zwar an seinem eigenen Test.
+            text = " ".join((skipped.get("message") or skipped.text or "").split())
+            if text and text not in texte:
+                texte.append(text)
+    return texte
+
+
 def classify(report: Path, pytest_exit: int | None = None) -> tuple[str, str]:
     """(state, reason) aus einem JUnit-XML und optional dem pytest-Exit-Code."""
     if not report.is_file():
@@ -98,11 +121,14 @@ def classify(report: Path, pytest_exit: int | None = None) -> tuple[str, str]:
             "bewegt, und ein Erfolg ohne Test ist kein Erfolg",
         )
     if tests - skipped == 0:
-        return (
-            UNKNOWN,
+        grund = (
             f"alle {tests} Test(s) uebersprungen — meist ein fehlendes Secret oder "
-            "eine nicht erfuellte Vorbedingung. Geprueft wurde nichts",
+            "eine nicht erfuellte Vorbedingung. Geprueft wurde nichts"
         )
+        meldungen = _skip_meldungen(suites)
+        if meldungen:
+            grund += ". Laut pytest: " + "; ".join(m[:300] for m in meldungen[:3])
+        return UNKNOWN, grund
     return CLEAR, f"{tests - skipped} von {tests} Test(s) ausgefuehrt, alle gruen"
 
 

@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Der Erreichbarkeits-Probe der Live-Suite wiederholt jetzt, und er sagt,
+  was schiefging.** Lauf 29 von `live.yml` (11.9.2026, 10:01 UTC) war rot,
+  ohne etwas festgestellt zu haben: Der einmalige Probe gegen
+  `www.envidat.ch/api/action/status_show` scheiterte, alle 31 Live-Tests
+  wurden uebersprungen, pytest endete mit 0, und der Job war nach sieben
+  Sekunden rot mit `state=unknown`. Die Laeufe davor und danach sind gruen,
+  die Quelle antwortete beim Nachmessen mit HTTP 200 — eine voruebergehende
+  Netzstoerung.
+
+  Zwei Luecken, beide ohne Kosten zu schliessen: Ein einziger Versuch
+  entschied ueber den ganzen Lauf (jetzt drei, mit 1 s und 2 s Pause), und der
+  `except`-Block verschluckte die Exception. Ob DNS, TLS, Connection Refused
+  oder Timeout stand nirgends — eine Sperre liess sich von einer Stoerung
+  nicht unterscheiden, der rote Lauf war keine Auskunft. Typ und Meldung
+  stehen jetzt in der Skip-Meldung, im JUnit-XML, am Ende des
+  Terminal-Protokolls und damit in den 40 Zeilen, die der Workflow ins Log
+  haengt.
+
+  `classify_live_run.py` traegt die Begruendung in `reason` mit. Bisher sagte
+  ein `unknown`-Lauf nur, DASS nichts geprueft wurde; ein fehlendes Secret,
+  ein DNS-Fehler und eine Sperre sahen im Zaehler gleich aus.
+
+  Eine Fehlerantwort bleibt eine Antwort: Ein 503 gilt weiter als erreichbar
+  und loest keinen zweiten Versuch aus. Entscheidend ist nicht der
+  Statuscode, sondern ob die Quelle ueberhaupt geantwortet hat.
+
 ## [0.3.1] - 2026-09-20
 
 ### Fixed
