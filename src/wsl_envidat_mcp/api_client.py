@@ -8,6 +8,7 @@ Dokumentation: https://docs.ckan.org/en/latest/api/index.html
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 from urllib.parse import urlparse
@@ -23,6 +24,29 @@ logger = logging.getLogger(__name__)
 ENVIDAT_API_BASE = "https://www.envidat.ch/api/action"
 ENVIDAT_PORTAL = "https://www.envidat.ch"
 REQUEST_TIMEOUT = 30.0  # Sekunden
+
+# Gateway-Fehler, die eine Wiederholung rechtfertigen (RES-001).
+#
+# Am 14.11. und 19.11.2026 war die geplante Live-Suite rot: 19 bzw. 10 von 31
+# Tests mit HTTP 502 von www.envidat.ch. Am 19.11. fiel `package_search` in einem
+# Test und lief im naechsten durch, Sekunden spaeter, mit denselben Parametern —
+# die Quelle flackerte. Die Nutzer des Servers trifft dasselbe, nur ohne Issue.
+#
+# 500 steht bewusst NICHT in dieser Menge. Ein 500 kann an der Anfrage haengen
+# (eine Solr-Query, an der die Quelle zerbricht) und kehrt dann bei jeder
+# Wiederholung zurueck. Einer deterministischen Absage keinen Wiederholungsrat
+# geben — weder im Code noch in der Meldung ans Modell. 502, 503 und 504 sagen
+# dagegen ueber die Anfrage nichts: Ein Gateway hat die Quelle nicht erreicht.
+_TRANSIENT_STATUS: frozenset[int] = frozenset({502, 503, 504})
+
+# Pausen nach dem ersten und zweiten Fehlversuch, also drei Versuche. Kurz,
+# weil ein Tool-Aufruf auf die Antwort wartet: im schlimmsten Fall 1,5 s mehr.
+_RETRY_PAUSEN: tuple[float, ...] = (0.5, 1.0)
+
+# Modul-Alias statt `asyncio.sleep` direkt: Ein Test patcht diesen Namen. Ein
+# `monkeypatch.setattr(asyncio, "sleep", ...)` entschaerfte das Warten im ganzen
+# Prozess, auch in der Event-Loop von anyio.
+_sleep = asyncio.sleep
 
 # Egress-Allow-List (SEC-021). Alle ausgehenden HTTP-Calls müssen auf einen
 # dieser Hosts gehen — Defense-in-Depth gegen Redirect-Hijack und gegen
@@ -134,6 +158,45 @@ def _make_client() -> httpx.AsyncClient:
     )
 
 
+async def _get(
+    client: httpx.AsyncClient, path: str, params: dict[str, Any] | None = None
+) -> httpx.Response:
+    """GET mit Wiederholung bei Gateway-Fehlern, sonst unveraendert.
+
+    Wiederholt wird nur, was `_TRANSIENT_STATUS` nennt. Jede andere Antwort —
+    auch ein 500 oder ein 404 — geht beim ersten Mal zurueck. Bleibt der
+    Gateway-Fehler bis zum letzten Versuch, kommt diese letzte Antwort zurueck,
+    und `_parse_response` wirft wie bisher.
+
+    Nur fuer GET: Alle Aufrufe dieses Moduls lesen. Ein schreibender Aufruf
+    duerfte so nicht wiederholt werden.
+    """
+    for pause in (*_RETRY_PAUSEN, None):
+        response = await client.get(path, params=params)
+        if response.status_code not in _TRANSIENT_STATUS or pause is None:
+            return response
+        logger.info(
+            "EnviDat %s antwortet mit HTTP %s, neuer Versuch in %.1f s",
+            path,
+            response.status_code,
+            pause,
+        )
+        await _sleep(pause)
+    raise AssertionError("unerreichbar: die Schleife endet mit pause=None")
+
+
+def _ist_html(response: httpx.Response) -> bool:
+    """Ist der Antwortkoerper eine HTML-Seite statt einer Auskunft?
+
+    Beides wird geprueft, weil keines allein genuegt: Fehlerseiten von Gateways
+    kommen nicht immer mit `text/html`, und der Content-Type der 502-Antworten
+    vom November 2026 ist nicht aufgezeichnet — nur ihr Anfang.
+    """
+    if "html" in response.headers.get("content-type", "").lower():
+        return True
+    return response.text.lstrip()[:15].lower().startswith(("<!doctype", "<html"))
+
+
 class UpstreamSchemaError(ValueError):
     """Die Antwort kam an, sieht aber anders aus, als der Code sie liest.
 
@@ -213,7 +276,23 @@ def handle_api_error(e: Exception, context: str = "") -> str:
             return f"{prefix}Fehler: Kein Zugriff (403 Forbidden)."
         if code == 429:
             return f"{prefix}Fehler: Rate-Limit erreicht. Bitte kurz warten."
-        return f"{prefix}Fehler: HTTP {code} – {e.response.text[:200]}"
+        reason = e.response.reason_phrase
+        if code in _TRANSIENT_STATUS:
+            # Hier ist der Wiederholungsrat richtig — anders als bei einem 400
+            # oder 500: Ein Gateway-Fehler sagt nichts ueber die Anfrage.
+            return (
+                f"{prefix}Fehler: Die Quelle antwortet mit HTTP {code} {reason} – "
+                "eine Störung auf Seiten von www.envidat.ch, keine Aussage über "
+                "die Daten. Ein späterer Versuch kann gelingen."
+            )
+        # Den Status mitfuehren, nicht den Koerper, wenn der Koerper eine
+        # HTML-Seite ist. Bis November 2026 standen hier die ersten 200 Zeichen
+        # jeder Antwort — bei einem 502 also `<!DOCTYPE html>\n<html lang="en">`
+        # und ein Stueck `<head>`, ohne ein einziges Wort Auskunft. Ein
+        # JSON-Fehlerkoerper von CKAN (etwa bei einem 409) ist dagegen eine
+        # Auskunft der Quelle und bleibt stehen.
+        detail = "" if _ist_html(e.response) else f" – {e.response.text[:200]}"
+        return f"{prefix}Fehler: HTTP {code} {reason}{detail}"
     if isinstance(e, httpx.TimeoutException):
         return f"{prefix}Fehler: Zeitüberschreitung. Bitte erneut versuchen."
     if isinstance(e, ValueError):
@@ -255,14 +334,14 @@ async def ckan_package_search(
         params.update(extras)
 
     async with _make_client() as client:
-        response = await client.get("/package_search", params=params)
+        response = await _get(client, "/package_search", params=params)
         return _parse_response(response, "package_search")
 
 
 async def ckan_package_show(id_or_slug: str) -> dict[str, Any]:
     """Gibt vollständige Metadaten eines Datensatzes zurück."""
     async with _make_client() as client:
-        response = await client.get("/package_show", params={"id": id_or_slug})
+        response = await _get(client, "/package_show", params={"id": id_or_slug})
         return _parse_response(response, "package_show")
 
 
@@ -270,7 +349,7 @@ async def ckan_organization_list(all_fields: bool = False) -> list[Any]:
     """Listet alle WSL-Forschungseinheiten/Organisationen auf."""
     params: dict[str, Any] = {"all_fields": all_fields}
     async with _make_client() as client:
-        response = await client.get("/organization_list", params=params)
+        response = await _get(client, "/organization_list", params=params)
         return _parse_response(response, "organization_list")
 
 
@@ -281,7 +360,7 @@ async def ckan_organization_show(id_or_name: str, include_datasets: bool = False
         "include_datasets": include_datasets,
     }
     async with _make_client() as client:
-        response = await client.get("/organization_show", params=params)
+        response = await _get(client, "/organization_show", params=params)
         return _parse_response(response, "organization_show")
 
 
@@ -293,14 +372,14 @@ async def ckan_tag_list(query: str = "", vocabulary_id: str = "") -> list[str]:
     if vocabulary_id:
         params["vocabulary_id"] = vocabulary_id
     async with _make_client() as client:
-        response = await client.get("/tag_list", params=params)
+        response = await _get(client, "/tag_list", params=params)
         return _parse_response(response, "tag_list")
 
 
 async def ckan_status_show() -> dict[str, Any]:
     """Gibt Status-Informationen des EnviDat-Portals zurück."""
     async with _make_client() as client:
-        response = await client.get("/status_show")
+        response = await _get(client, "/status_show")
         return _parse_response(response, "status_show")
 
 

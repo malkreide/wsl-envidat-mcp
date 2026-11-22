@@ -296,7 +296,7 @@ sie dieselbe Version aus `pyproject.toml` beziehen und keine zweite nennen.
 Vor dem Lauf `ruff --version` prüfen: ein älteres ruff früher im `PATH`
 schlägt den Pin, ohne dass der Install etwas meldet.
 
-**Gates, wörtlich aus `ci.yml`** (Matrix: Python 3.11 / 3.12 / 3.13):
+**Gates, wörtlich aus `ci.yml`** (Matrix: Python 3.11 / 3.12 / 3.13 / 3.14):
 
 ```
 python scripts/check_ruff_pin.py
