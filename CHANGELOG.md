@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Gateway-Fehler der Quelle werden wiederholt, und das Modell sieht kein HTML
+  mehr.** Die geplante Live-Suite war am 14.11.2026 (Lauf 93) und am 19.11.
+  (Lauf 98) rot: 19 bzw. 10 von 31 Tests mit HTTP 502 von `www.envidat.ch`. Die
+  Läufe davor und danach sind grün, und beim Nachmessen am 22.11. antworteten
+  dieselben URLs 20-mal mit HTTP 200. Am 19.11. fiel `package_search` in einem
+  Test und lief in anderen derselben Minute durch: Die Quelle flackerte, der
+  Vertrag stand. Die Issues #66 und #67 gingen auf und mit dem nächsten grünen
+  Lauf wieder zu.
+
+  Zwei Mängel im Server selbst hat das sichtbar gemacht, und beide treffen die
+  Nutzer genauso wie die Live-Suite:
+
+  1. **Kein zweiter Versuch.** Jeder Aufruf ist ein lesendes GET. Jetzt
+     werden 502, 503 und 504 bis zu dreimal versucht, mit 0,5 s und 1 s Pause.
+     **500 bewusst nicht:** Ein 500 kann an der Anfrage hängen und kehrt dann
+     bei jeder Wiederholung zurück. Ein 404 oder ein anderer 4xx ebenfalls nicht.
+  2. **HTML in der Fehlermeldung.** `handle_api_error` hängte die ersten 200
+     Zeichen des Antwortkörpers an — bei einem 502 also `<!DOCTYPE html>` und
+     ein Stück `<head>`, ohne ein Wort Auskunft. Genau das stand danach im
+     Issue. Ein Gateway-Fehler meldet jetzt Status und Einordnung («eine
+     Störung auf Seiten von www.envidat.ch, keine Aussage über die Daten»);
+     bei jedem anderen Status fällt der Körper weg, wenn er HTML ist. Ein
+     JSON-Fehlerkörper von CKAN, etwa bei einem 409, ist eine Auskunft der
+     Quelle und bleibt stehen.
+
+  Die 502-Seite in den Tests ist aufgezeichnet, nicht ausgedacht: der Anfang
+  der echten Antwort, wörtlich aus dem Protokoll von Lauf 98. Länger ist sie
+  nicht erhalten, weil der alte Code selbst nach 200 Zeichen abschnitt.
+
 ### Geändert
 
 - **Python 3.14 ist in der CI-Matrix.** Die Matrix fährt neu 3.11 / 3.12 /
